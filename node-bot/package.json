@@ -1,0 +1,22 @@
+{
+  "name": "whatsapp-gpt-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp bot that connects to OpenAI GPT via Python API",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "punycode": "^2.3.1",
+    "puppeteer": "^24.9.0",
+    "qrcode-terminal": "^0.12.0",
+    "tar-fs": "^3.0.8",
+    "whatsapp-web.js": "^1.23.0",
+    "ws": "^8.18.2"
+  },
+  "resolutions": {
+    "tar-fs": "^3.0.8",
+    "ws": "^8.18.2"
+  }
+}

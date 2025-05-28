@@ -1,0 +1,25 @@
+# Core dependencies
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# OpenAI
+openai>=1.3.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+alembic>=1.12.0
+
+# Redis for caching
+redis>=5.0.0
+
+# Token counting for conversation management
+tiktoken>=0.5.0
+
+# Backup and scheduling
+schedule>=1.2.0
+
+# Logging (built-in to Python, no additional dependencies needed)
+# colorlog>=6.7.0  # Optional: for colored console logs 
