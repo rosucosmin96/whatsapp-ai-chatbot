@@ -1,5 +1,5 @@
-from database.models import ChatInteraction
-from database.schema import ChatInteraction as ChatInteractionModel, ChatRequest, ChatResponse
+from .database.models import ChatInteraction
+from .database.schema import ChatInteraction as ChatInteractionModel, ChatRequest, ChatResponse
 
 def map_db_interaction_to_api_interaction(interaction: ChatInteraction) -> ChatInteractionModel:
     return ChatInteractionModel(

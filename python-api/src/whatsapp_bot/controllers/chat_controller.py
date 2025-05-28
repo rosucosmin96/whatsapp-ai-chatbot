@@ -21,8 +21,8 @@ class ChatController:
     def __init__(self, prompts_dir: str):
         self.prompts_dir = prompts_dir
         self.config_manager = config_manager
-        self.openai_client = OpenAIClient(prompts_dir, self.config_manager)
-        self.conversation_service = ConversationSummarizationService(prompts_dir, self.config_manager)
+        self.openai_client = OpenAIClient(prompts_dir)
+        self.conversation_service = ConversationSummarizationService(prompts_dir)
         self.anti_ban_service = AntiBanService()
         logger.info("Chat controller initialized with configuration management")
     
