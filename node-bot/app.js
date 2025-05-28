@@ -43,7 +43,6 @@ client.on('message', async (message) => {
         
     } catch (error) {
         console.error('Error processing message:', error);
-        await client.sendMessage(userPhone, "Sorry, I'm having trouble processing your message right now.");
     }
 });
 
