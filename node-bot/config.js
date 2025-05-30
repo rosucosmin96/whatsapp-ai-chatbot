@@ -1,3 +1,3 @@
 module.exports = {
-  apiUrl: "http://localhost:8000/chat"
+  apiUrl: "http://127.0.0.1:8000/chat"
 }; 
