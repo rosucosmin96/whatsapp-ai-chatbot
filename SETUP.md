@@ -1,563 +1,421 @@
-# 🛠️ WhatsApp OpenAI Bot - Complete Setup Guide
+# 🛠️ Local Development Setup
 
-This comprehensive guide will walk you through setting up the WhatsApp OpenAI Bot from scratch, including all dependencies, database configuration, and testing procedures.
+A simple guide to set up the WhatsApp OpenAI Bot for local development on your machine.
 
 ## 📋 Prerequisites
 
-Before starting, ensure you have the following:
+- **Python 3.10+** 
+- **Node.js 18+**
+- **PostgreSQL**
+- **Redis**
+- **OpenAI API Key** (from [OpenAI Platform](https://platform.openai.com/))
 
-### System Requirements
-- **Operating System**: macOS, Linux, or Windows
-- **Python**: 3.10 or higher (Required)
-- **Node.js**: 18.0 or higher
-- **Git**: For cloning the repository
-- **OpenAI API Key**: From [OpenAI Platform](https://platform.openai.com/)
+## 🖥️ Platform-Specific Installation
 
-### Hardware Requirements
-- **RAM**: Minimum 4GB (8GB recommended)
-- **Storage**: At least 2GB free space
-- **Network**: Stable internet connection
+### macOS (Homebrew)
 
----
-
-## 🚀 Step-by-Step Installation
-
-### Step 1: Install System Dependencies
-
-#### macOS (using Homebrew)
 ```bash
-# Install Homebrew if not already installed
+# Install Homebrew (if not installed)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Install required packages
-brew install python@3.11 node postgresql redis git
-brew install --cask google-chrome  # For WhatsApp Web automation
+# Install all dependencies
+brew install python@3.11 node postgresql redis
 
 # Start services
 brew services start postgresql
 brew services start redis
+
+# Verify installations
+python3 --version
+node --version
+psql --version
+redis-cli ping
 ```
 
-#### Ubuntu/Debian Linux
+### Ubuntu/Debian
+
 ```bash
-# Update package list
+# Update system
 sudo apt update && sudo apt upgrade -y
 
 # Install Python 3.11
 sudo apt install -y software-properties-common
-sudo add-apt-repository ppa:deadsnakes/ppa
+sudo add-apt-repository ppa:deadsnakes/ppa -y
 sudo apt update
-sudo apt install -y python3.11 python3.11-venv python3.11-dev python3-pip
+sudo apt install -y python3.11 python3.11-venv python3.11-pip
 
 # Install Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
 # Install PostgreSQL and Redis
 sudo apt install -y postgresql postgresql-contrib redis-server
 
-# Install Chrome for WhatsApp automation
-wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-sudo apt update
-sudo apt install -y google-chrome-stable
-
 # Start services
-sudo systemctl start postgresql
-sudo systemctl start redis-server
-sudo systemctl enable postgresql
-sudo systemctl enable redis-server
+sudo systemctl start postgresql redis-server
+sudo systemctl enable postgresql redis-server
 ```
 
-#### Windows
+### Windows
+
 ```powershell
-# Install using Chocolatey (run as Administrator)
-# First install Chocolatey: https://chocolatey.org/install
+# Using Chocolatey (install from https://chocolatey.org/)
+choco install python311 nodejs postgresql redis-64 -y
 
-choco install python311 nodejs postgresql redis-64 git googlechrome -y
-
-# Start PostgreSQL service
+# Start services
 net start postgresql-x64-14
-
-# Start Redis service
 net start redis
 ```
 
-### Step 2: Clone and Setup Project
+## 📦 Project Setup
+
+### 1. Clone Repository
 
 ```bash
-# Clone the repository
 git clone <your-repository-url>
 cd whatsapp-openai-bot
-
-# Verify Python version
-python3 --version  # Should be 3.10+
 ```
 
-### Step 3: Setup Python Backend
+### 2. Python API Setup
 
 ```bash
-# Navigate to Python API directory
+# Navigate to Python API
 cd python-api
 
 # Create virtual environment
 python3 -m venv venv
 
 # Activate virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-# On Windows:
-# venv\Scripts\activate
-
-# Upgrade pip
-pip install --upgrade pip
+source venv/bin/activate  # macOS/Linux
+# venv\Scripts\activate    # Windows
 
 # Install dependencies
+pip install --upgrade pip
 pip install -r requirements.txt
-
-# Verify installation
-pip list
 ```
 
-### Step 4: Configure PostgreSQL Database
+### 3. Database Setup
 
-#### Option A: Automated Setup (Recommended)
 ```bash
-# Run the database setup script
-python -c "
-import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
-# Connect to PostgreSQL
-conn = psycopg2.connect(
-    host='localhost',
-    user='postgres',
-    password='',  # Default empty password on macOS/Linux
-    database='postgres'
-)
-conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-cur = conn.cursor()
-
 # Create database and user
-try:
-    cur.execute('CREATE DATABASE chatbot_db;')
-    print('Database created successfully')
-except psycopg2.errors.DuplicateDatabase:
-    print('Database already exists')
-
-try:
-    cur.execute(\"CREATE USER chatbot_user WITH PASSWORD 'your_secure_password';\")
-    print('User created successfully')
-except psycopg2.errors.DuplicateObject:
-    print('User already exists')
-
-cur.execute('GRANT ALL PRIVILEGES ON DATABASE chatbot_db TO chatbot_user;')
-print('Privileges granted')
-
-cur.close()
-conn.close()
-print('Database setup completed!')
-"
-```
-
-#### Option B: Manual Setup
-```bash
-# Connect to PostgreSQL
-psql postgres
-
-# In PostgreSQL prompt:
+sudo -u postgres psql << EOF
 CREATE DATABASE chatbot_db;
-CREATE USER chatbot_user WITH PASSWORD 'your_secure_password';
+CREATE USER chatbot_user WITH PASSWORD 'dev_password';
 GRANT ALL PRIVILEGES ON DATABASE chatbot_db TO chatbot_user;
 \q
+EOF
+
+# Test connection
+psql -U chatbot_user -d chatbot_db -h localhost -c "SELECT version();"
 ```
 
-### Step 5: Configure Redis
+### 4. Environment Configuration
+
+Create `.env` file in `python-api/`:
 
 ```bash
-# Test Redis connection
-redis-cli ping
-# Should return: PONG
-
-# Check Redis configuration
-redis-cli info server
-```
-
-### Step 6: Environment Configuration
-
-#### Create Python API .env file
-```bash
-# Create .env file in python-api directory
-cd python-api
-cat > .env << 'EOF'
+cat > .env << EOF
 # OpenAI Configuration
 OPENAI_API_KEY=sk-your-openai-api-key-here
+OPENAI_MODEL=gpt-3.5-turbo
 
 # Database Configuration
-DATABASE_URL=postgresql://chatbot_user:your_secure_password@localhost:5432/chatbot_db
+DATABASE_URL=postgresql://chatbot_user:dev_password@localhost:5432/chatbot_db
 
 # Redis Configuration
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DB=0
-REDIS_PASSWORD=
 
-# Application Configuration
+# Development Configuration
 PROMPTS_DIR=prompts
-LOG_LEVEL=INFO
+LOG_LEVEL=DEBUG
 
-# Backup Configuration
-BACKUP_RETENTION_HOURS=2
-BACKUP_SCHEDULE_HOURS=1
+# Anti-Ban Configuration (relaxed for development)
+MAX_NEW_USERS_PER_HOUR=50
+MIN_REPLY_DELAY=1.0
+MAX_REPLY_DELAY=2.0
+GLOBAL_RATE_LIMIT=0.5
 EOF
 ```
 
-#### Create Node.js Bot .env file
+### 5. Node.js Bot Setup
+
 ```bash
-# Create .env file in node-bot directory
+# Navigate to Node.js bot
 cd ../node-bot
-cat > .env << 'EOF'
-# API Configuration
-API_URL=http://localhost:8000/chat
 
-# WhatsApp Configuration
-WHATSAPP_SESSION_PATH=./session
-EOF
-```
-
-### Step 7: Install Node.js Dependencies
-
-```bash
-# In node-bot directory
+# Install dependencies
 npm install
 
-# Verify installation
-npm list
+# Create .env file
+cat > .env << EOF
+API_URL=http://localhost:8000
+EOF
 ```
 
----
+## 🚀 Running the Application
 
-## 🔧 Database Initialization
+### Start Python API
 
-### Initialize Database Tables
-```bash
-# Navigate to Python API directory
-cd python-api
-source venv/bin/activate  # Activate virtual environment
-
-# Initialize database schema
-python -c "
-from src.whatsapp_bot.database import init_db
-init_db()
-print('Database tables created successfully!')
-"
-```
-
-### Verify Database Setup
-```bash
-# Connect to database and verify tables
-psql -U chatbot_user -d chatbot_db
-
-# In PostgreSQL prompt:
-\dt  # List tables
-SELECT * FROM users LIMIT 5;
-SELECT * FROM chat_interactions LIMIT 5;
-\q
-```
-
----
-
-## 🚀 Starting the Application
-
-### Terminal 1: Start Python API
 ```bash
 cd python-api
 source venv/bin/activate
 python -m src.whatsapp_bot.main
 ```
 
-You should see:
-```
-INFO:     Started server process [12345]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8000
-```
+### Start Node.js Bot (new terminal)
 
-### Terminal 2: Start WhatsApp Bot
 ```bash
 cd node-bot
 node app.js
 ```
 
-You should see a QR code displayed in the terminal.
+### Connect WhatsApp
 
-### Terminal 3: Start Backup Service (Optional)
-```bash
-cd python-api
-source venv/bin/activate
-python -m src.whatsapp_bot.services.backup_service schedule
-```
+1. Scan the QR code displayed in the Node.js terminal
+2. Open WhatsApp on your phone
+3. Go to Settings > Linked Devices > Link a Device
+4. Scan the QR code
 
----
+## 🧪 Development Testing
 
-## 📱 WhatsApp Connection
-
-1. **Scan QR Code**: Use your WhatsApp mobile app to scan the QR code
-2. **Wait for Connection**: You should see "WhatsApp client is ready!"
-3. **Test Connection**: Send a message to your WhatsApp number from another device
-
----
-
-## 🧪 Comprehensive Testing
-
-### 1. API Health Checks
+### API Health Check
 
 ```bash
-# Test general health
+# Test API
 curl http://localhost:8000/health
-# Expected: {"status": "ok"}
 
-# Test Redis health
+# Test Redis
 curl http://localhost:8000/health/redis
-# Expected: {"status": "ok", "cache_ttl_minutes": 30}
 
-# Test API documentation
-open http://localhost:8000/docs  # Opens Swagger UI
+# View API docs
+open http://localhost:8000/docs
 ```
 
-### 2. Database Testing
+### Send Test Message
 
 ```bash
-# Test database connection
-python -c "
-from src.whatsapp_bot.database import get_db
-from sqlalchemy.orm import Session
-
-db = next(get_db())
-result = db.execute('SELECT 1 as test').fetchone()
-print(f'Database test result: {result.test}')
-db.close()
-"
-```
-
-### 3. Redis Testing
-
-```bash
-# Test Redis connection
-redis-cli ping
-
-# Test Redis operations
-redis-cli set test_key "test_value"
-redis-cli get test_key
-redis-cli del test_key
-
-# Check Redis info
-redis-cli info memory
-```
-
-### 4. Chat API Testing
-
-```bash
-# Test chat endpoint
 curl -X POST "http://localhost:8000/chat" \
   -H "Content-Type: application/json" \
   -d '{
     "phone": "+1234567890",
-    "message": "Hello, this is a test message!"
+    "message": "Hello bot!"
   }'
-
-# Expected response:
-# {"response": "Hello! How can I help you today?"}
 ```
 
-### 5. Conversation History Testing
-
-```bash
-# Get conversation history
-curl "http://localhost:8000/history/+1234567890?limit=5"
-
-# Expected: Array of conversation objects
-```
-
-### 6. Redis Cache Inspection
-
-```bash
-# List all Redis keys
-redis-cli KEYS "*"
-
-# View user conversations (replace 1 with actual user ID)
-redis-cli LRANGE "user:1:conversations" 0 -1
-
-# Check TTL for cached data
-redis-cli TTL "user:1:conversations"
-```
-
-### 7. Database Content Verification
+### Database Inspection
 
 ```bash
 # Connect to database
-psql -U chatbot_user -d chatbot_db
+psql -U chatbot_user -d chatbot_db -h localhost
 
-# Check users table
-SELECT id, phone, created_at FROM users ORDER BY created_at DESC LIMIT 5;
+# View tables
+\dt
 
-# Check interactions table
-SELECT 
-    u.phone, 
-    ci.request_message, 
-    ci.response_message, 
-    ci.language,
-    ci.created_at 
-FROM chat_interactions ci 
-JOIN users u ON ci.user_id = u.id 
-ORDER BY ci.created_at DESC 
-LIMIT 5;
-
-# Check table sizes
-SELECT 
-    schemaname,
-    tablename,
-    attname,
-    n_distinct,
-    correlation
-FROM pg_stats 
-WHERE schemaname = 'public';
+# Check data
+SELECT * FROM users LIMIT 5;
+SELECT * FROM chat_interactions ORDER BY created_at DESC LIMIT 5;
+\q
 ```
 
----
+### Redis Cache Check
 
-## 🔄 Automated Backup Testing
-
-### Test Manual Backup
 ```bash
-# Create a manual backup
-python -m src.whatsapp_bot.services.backup_service backup
+# List all keys
+redis-cli KEYS "*"
 
-# List available backups
-python -m src.whatsapp_bot.services.backup_service list
+# View conversation
+redis-cli LRANGE "user:1:conversations" 0 -1
 
-# Test database connection
-python -m src.whatsapp_bot.services.backup_service test
+# Clear cache (if needed)
+redis-cli FLUSHALL
 ```
 
-### Test Backup Restoration
+## 🔧 Development Configuration
+
+### Bot Configuration for Development
+
+Create `config/bot_config.json`:
+
+```json
+{
+  "response": {
+    "max_tokens": 500,
+    "temperature": 0.9,
+    "response_style": "conversational"
+  },
+  "access": {
+    "allowed_numbers": ["+your-phone-number"],
+    "whitelist_mode": false,
+    "admin_numbers": ["+your-phone-number"]
+  },
+  "enabled": true,
+  "maintenance_mode": false
+}
+```
+
+### Development Environment Variables
+
+For easier development, you can also set:
+
 ```bash
-# Create test data
-curl -X POST "http://localhost:8000/chat" \
-  -H "Content-Type: application/json" \
-  -d '{"phone": "+test123", "message": "Test before backup"}'
-
-# Create backup
-python -m src.whatsapp_bot.services.backup_service backup
-
-# Simulate data loss (be careful!)
-psql -U chatbot_user -d chatbot_db -c "TRUNCATE chat_interactions, users CASCADE;"
-
-# Restore from backup
-python -m src.whatsapp_bot.services.backup_service restore backups/backup_YYYY-MM-DD_HH-MM-SS.sql
-
-# Verify restoration
-psql -U chatbot_user -d chatbot_db -c "SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM chat_interactions;"
+# In python-api/.env
+DEBUG=true
+AUTO_RELOAD=true
+LOG_LEVEL=DEBUG
+CORS_ORIGINS=http://localhost:3000,http://localhost:8080
 ```
 
----
+## 🛠️ Development Tools
 
-## 🚨 Troubleshooting
+### Code Formatting
 
-### Common Issues and Solutions
-
-#### 1. Python Version Issues
 ```bash
-# Check Python version
-python3 --version
+# Install development tools
+cd python-api
+pip install black flake8 pytest
 
-# If version is < 3.10, install newer version
-# On macOS:
-brew install python@3.11
-# On Ubuntu:
-sudo apt install python3.11
+# Format code
+black src/
+flake8 src/
+
+# Run tests
+pytest
 ```
 
-#### 2. Database Connection Issues
+### Database Migrations
+
 ```bash
-# Check PostgreSQL status
-# macOS:
-brew services list | grep postgresql
-# Linux:
-sudo systemctl status postgresql
+# If you modify database models
+cd python-api
+source venv/bin/activate
 
-# Test connection manually
-psql -U chatbot_user -d chatbot_db -c "SELECT 1;"
+# Create migration
+alembic revision --autogenerate -m "Description of changes"
+
+# Apply migration
+alembic upgrade head
 ```
 
-#### 3. Redis Connection Issues
+### Hot Reload Setup
+
+For automatic restarts during development:
+
+```bash
+# Install nodemon for Node.js
+npm install -g nodemon
+
+# Install uvicorn with reload for Python
+pip install uvicorn[standard]
+
+# Start with hot reload
+cd python-api
+uvicorn src.whatsapp_bot.main:app --reload --host 0.0.0.0 --port 8000
+
+# Start Node.js with hot reload
+cd node-bot
+nodemon app.js
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**PostgreSQL connection failed:**
+```bash
+# Check if PostgreSQL is running
+brew services list | grep postgresql  # macOS
+sudo systemctl status postgresql      # Linux
+
+# Reset password if needed
+sudo -u postgres psql -c "ALTER USER chatbot_user PASSWORD 'dev_password';"
+```
+
+**Redis connection failed:**
 ```bash
 # Check Redis status
-# macOS:
-brew services list | grep redis
-# Linux:
-sudo systemctl status redis
-
-# Test Redis connection
 redis-cli ping
+
+# Restart Redis
+brew services restart redis           # macOS
+sudo systemctl restart redis-server  # Linux
 ```
 
-#### 4. OpenAI API Issues
+**WhatsApp QR code not appearing:**
 ```bash
-# Test API key
-curl -H "Authorization: Bearer $OPENAI_API_KEY" \
-  https://api.openai.com/v1/models
+# Install Chrome dependencies (Linux)
+sudo apt install -y libnss3 libatk-bridge2.0-0 libdrm2 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxss1 libasound2
+
+# Check Chrome installation
+google-chrome --version
 ```
 
-#### 5. WhatsApp Connection Issues
+**OpenAI API errors:**
+- Verify your API key is correct
+- Check your OpenAI account has credits
+- Ensure the API key has proper permissions
+
+### Reset Development Environment
+
 ```bash
-# Clear WhatsApp session
-rm -rf node-bot/session/
+# Stop all services
+pkill -f "python -m src.whatsapp_bot.main"
+pkill -f "node app.js"
 
-# Restart bot
-cd node-bot
-node app.js
+# Clear database
+psql -U chatbot_user -d chatbot_db -h localhost -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+
+# Clear Redis
+redis-cli FLUSHALL
+
+# Restart services
+cd python-api && source venv/bin/activate && python -m src.whatsapp_bot.main &
+cd node-bot && node app.js &
 ```
+
+## 📝 Development Notes
+
+- **Database**: Use `dev_password` for local development (never in production)
+- **API Keys**: Keep your OpenAI API key secure and never commit it to version control
+- **WhatsApp**: The QR code expires after a few minutes, generate a new one if needed
+- **Logs**: Check terminal outputs for debugging information
+- **Rate Limits**: Development settings are more permissive than production
+
+## 🔄 Daily Development Workflow
+
+1. **Start development:**
+   ```bash
+   # Terminal 1: Python API
+   cd python-api && source venv/bin/activate && python -m src.whatsapp_bot.main
+   
+   # Terminal 2: Node.js Bot
+   cd node-bot && node app.js
+   ```
+
+2. **Test changes:**
+   ```bash
+   curl http://localhost:8000/health
+   # Send test WhatsApp message
+   ```
+
+3. **Check logs and data:**
+   ```bash
+   # Database
+   psql -U chatbot_user -d chatbot_db -h localhost
+   
+   # Redis
+   redis-cli KEYS "*"
+   ```
+
+4. **Stop development:**
+   ```bash
+   # Ctrl+C in both terminals
+   # Or kill processes
+   pkill -f "python -m src.whatsapp_bot.main"
+   pkill -f "node app.js"
+   ```
 
 ---
 
-## 📊 Monitoring and Maintenance
-
-### Daily Checks
-```bash
-# Check service status
-curl http://localhost:8000/health
-redis-cli ping
-psql -U chatbot_user -d chatbot_db -c "SELECT 1;"
-
-# Check backup status
-ls -la python-api/backups/
-```
-
-### Weekly Maintenance
-```bash
-# Update dependencies
-cd python-api
-pip list --outdated
-
-cd ../node-bot
-npm outdated
-
-# Clean old logs
-find . -name "*.log" -mtime +7 -delete
-
-# Vacuum database
-psql -U chatbot_user -d chatbot_db -c "VACUUM ANALYZE;"
-```
-
----
-
-## 📞 Support
-
-If you encounter issues:
-
-1. **Check Logs**: Review application and system logs
-2. **Verify Configuration**: Double-check .env files
-3. **Test Components**: Use the testing procedures above
-4. **Create Issue**: Submit detailed bug report with logs 
+**Ready to develop!** 🎉 Your local WhatsApp OpenAI Bot should now be running and ready for development. 
