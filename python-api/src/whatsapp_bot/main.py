@@ -39,7 +39,15 @@ PROMPTS_DIR = os.getenv("PROMPTS_DIR", "prompts")
 # Ensure the necessary prompt files exist
 default_prompts = {
     "english.txt": "You are a helpful WhatsApp assistant. Provide clear, concise, and accurate responses to user questions. Be friendly and polite in your interactions.",
-    "romanian.txt": "Ești un asistent WhatsApp util. Oferă răspunsuri clare, concise și precise la întrebările utilizatorilor. Fii prietenos și politicos în interacțiunile tale."
+    "romanian.txt": "Ești un asistent WhatsApp util. Oferă răspunsuri clare, concise și precise la întrebările utilizatorilor. Fii prietenos și politicos în interacțiunile tale.",
+    "summary_english.txt": """Create a detailed summary of this conversation between user and assistant. 
+                The summary should include all main topics, questions and answers, 
+                and any important context for continuing the conversation.
+                The summary should be in English.""",
+    "summary_romanian.txt": """Creează un rezumat detaliat al acestei conversații între utilizator și asistent. 
+                Rezumatul trebuie să includă toate subiectele principale, întrebările și răspunsurile, 
+                și orice context important pentru continuarea conversației.
+                Rezumatul trebuie să fie în limba română.""",
 }
 
 # Create prompts directory if it doesn't exist

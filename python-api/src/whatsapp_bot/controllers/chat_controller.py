@@ -1,8 +1,8 @@
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
 from datetime import datetime
 import asyncio
+from typing import List
 
 from ..openai_client import OpenAIClient
 from ..database.schema import ChatRequest, ChatResponse, ChatInteraction as ChatInteractionModel

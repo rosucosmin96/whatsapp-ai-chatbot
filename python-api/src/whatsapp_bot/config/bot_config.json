@@ -1,4 +1,13 @@
 {
+  "models": {
+    "default": "gpt-4o-mini",
+    "chat": "gpt-4o-mini",
+    "summarization": "gpt-4o-mini",
+    "translation": "gpt-4o-mini",
+    "analysis": "gpt-4o-mini",
+    "creative": "gpt-4o-mini",
+    "admin_commands": "gpt-4o-mini"
+  },
   "response": {
     "max_tokens": 1000,
     "min_tokens": 50,
@@ -6,19 +15,24 @@
     "response_style": "conversational"
   },
   "access": {
-    "allowed_numbers": [],
+    "allowed_numbers": [
+      "+1234567890",
+      "+0987654321"
+    ],
     "blocked_numbers": [],
     "whitelist_mode": false,
-    "admin_numbers": []
+    "admin_numbers": [
+      "+1234567890"
+    ]
   },
   "anti_ban": {
     "enabled": true,
     "max_new_users_per_hour": 10,
     "min_reply_delay": 2.0,
-    "max_reply_delay": 5.0,
+    "max_reply_delay": 10.0,
     "global_rate_limit": 1.0,
     "daily_message_limits": {
-      "1": 30,
+      "1": 20,
       "2": 50,
       "3": 100,
       "4": 200
@@ -27,4 +41,4 @@
   "enabled": true,
   "maintenance_mode": false,
   "maintenance_message": "Bot is currently under maintenance. Please try again later."
-}
+} 
