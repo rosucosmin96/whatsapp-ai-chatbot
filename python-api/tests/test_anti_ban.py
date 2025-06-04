@@ -122,6 +122,20 @@ def test_new_user_limiting():
         response = test_chat_endpoint(phone, message)
         time.sleep(0.5)  # Brief pause
 
+def test_anti_ban_disabled():
+    """Test behavior when anti-ban is disabled"""
+    print("🔓 Testing Anti-Ban Disabled Mode:")
+    
+    # Test rapid messages when anti-ban should be disabled
+    phone = "+9999999999"
+    
+    print("Sending rapid messages to test if anti-ban is disabled...")
+    for i in range(3):
+        message = f"Rapid test message {i+1}"
+        print(f"Sending rapid message {i+1}/3...")
+        response = test_chat_endpoint(phone, message)
+        # No delay - testing if anti-ban delays are bypassed
+
 def main():
     """Run all anti-ban tests"""
     print("🛡️  WhatsApp Bot Anti-Ban Testing")
@@ -153,6 +167,9 @@ def main():
     
     # Test new user limiting
     test_new_user_limiting()
+    
+    # Test anti-ban disabled mode
+    test_anti_ban_disabled()
     
     # Final statistics
     print("📊 Final Anti-Ban Statistics:")

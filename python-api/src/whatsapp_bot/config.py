@@ -45,6 +45,7 @@ class AccessConfig:
 @dataclass
 class AntiBanConfig:
     """Configuration for anti-ban measures"""
+    enabled: bool = True
     max_new_users_per_hour: int = 10
     min_reply_delay: float = 2.0
     max_reply_delay: float = 5.0

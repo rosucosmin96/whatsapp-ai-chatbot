@@ -23,7 +23,7 @@ class ChatController:
         self.config_manager = config_manager
         self.openai_client = OpenAIClient(prompts_dir)
         self.conversation_service = ConversationSummarizationService(prompts_dir)
-        self.anti_ban_service = AntiBanService()
+        self.anti_ban_service = AntiBanService(self.config_manager)
         logger.info("Chat controller initialized with configuration management")
     
     async def chat_endpoint(self, request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
@@ -206,6 +206,19 @@ class ChatController:
                     return f"🤖 Model for {task} set to {model}"
                 else:
                     return f"❌ Invalid task. Options: {', '.join(valid_tasks)}"
+            
+            elif parts[1] == 'antiban':
+                if len(parts) > 2 and parts[2] == 'on':
+                    self.config_manager.config.anti_ban.enabled = True
+                    self.config_manager.save_config()
+                    return "🛡️ Anti-ban measures enabled"
+                elif len(parts) > 2 and parts[2] == 'off':
+                    self.config_manager.config.anti_ban.enabled = False
+                    self.config_manager.save_config()
+                    return "🔓 Anti-ban measures disabled"
+                else:
+                    status = "enabled" if self.config_manager.config.anti_ban.enabled else "disabled"
+                    return f"🛡️ Anti-ban measures are currently {status}"
         
         elif message_lower.startswith('/allow'):
             parts = message.split()
@@ -254,6 +267,7 @@ class ChatController:
 /config enable/disable - Enable/disable bot
 /config maintenance on/off - Toggle maintenance mode
 /config whitelist on/off - Toggle whitelist mode
+/config antiban on/off - Toggle anti-ban measures
 /config tokens 500 - Set max response tokens
 /config style brief - Set response style (conversational/brief/detailed)
 /config model chat gpt-4o-mini - Set model for specific task

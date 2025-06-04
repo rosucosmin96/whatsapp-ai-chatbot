@@ -14,20 +14,30 @@ logger = get_logger(__name__)
 class AntiBanService:
     """Service for implementing anti-ban measures to prevent WhatsApp account suspension"""
     
-    def __init__(self):
-        # Rate limiting configuration
-        self.max_new_users_per_hour = int(os.getenv('MAX_NEW_USERS_PER_HOUR', '10'))
-        self.min_reply_delay = float(os.getenv('MIN_REPLY_DELAY', '2.0'))
-        self.max_reply_delay = float(os.getenv('MAX_REPLY_DELAY', '5.0'))
-        self.global_message_rate_limit = float(os.getenv('GLOBAL_RATE_LIMIT', '1.0'))  # seconds between messages
+    def __init__(self, config_manager=None):
+        self.config_manager = config_manager
         
-        # Warm-up configuration
-        self.daily_message_limits = {
-            1: 20,   # Week 1: 20 messages/day
-            2: 50,   # Week 2: 50 messages/day  
-            3: 100,  # Week 3: 100 messages/day
-            4: 200   # Week 4+: 200 messages/day
-        }
+        # If config manager is provided, use config; otherwise fall back to environment variables
+        if config_manager:
+            anti_ban_config = config_manager.get_anti_ban_config()
+            self.max_new_users_per_hour = anti_ban_config.max_new_users_per_hour
+            self.min_reply_delay = anti_ban_config.min_reply_delay
+            self.max_reply_delay = anti_ban_config.max_reply_delay
+            self.global_message_rate_limit = anti_ban_config.global_rate_limit
+            self.daily_message_limits = anti_ban_config.daily_message_limits
+        else:
+            # Fallback to environment variables for backward compatibility
+            self.max_new_users_per_hour = int(os.getenv('MAX_NEW_USERS_PER_HOUR', '10'))
+            self.min_reply_delay = float(os.getenv('MIN_REPLY_DELAY', '2.0'))
+            self.max_reply_delay = float(os.getenv('MAX_REPLY_DELAY', '5.0'))
+            self.global_message_rate_limit = float(os.getenv('GLOBAL_RATE_LIMIT', '1.0'))
+            # Default warm-up configuration
+            self.daily_message_limits = {
+                1: 20,   # Week 1: 20 messages/day
+                2: 50,   # Week 2: 50 messages/day  
+                3: 100,  # Week 3: 100 messages/day
+                4: 200   # Week 4+: 200 messages/day
+            }
         
         # Spam detection patterns
         self.spam_patterns = [
@@ -38,6 +48,12 @@ class AntiBanService:
         self.redis_client = redis_cache.redis_client
         logger.info("Anti-ban service initialized")
     
+    def _is_anti_ban_enabled(self) -> bool:
+        """Check if anti-ban measures are enabled"""
+        if self.config_manager:
+            return getattr(self.config_manager.get_anti_ban_config(), 'enabled', True)
+        return True  # Default to enabled if no config manager
+    
     async def should_allow_message(self, user_phone: str, db: Session) -> Tuple[bool, Optional[str]]:
         """
         Check if we should allow processing this message based on anti-ban rules
@@ -45,6 +61,10 @@ class AntiBanService:
         Returns:
             Tuple[bool, Optional[str]]: (allow_message, reason_if_blocked)
         """
+        
+        # If anti-ban is disabled, always allow
+        if not self._is_anti_ban_enabled():
+            return True, None
         
         # Check if user is opted out
         if await self._is_user_opted_out(user_phone):
@@ -68,6 +88,10 @@ class AntiBanService:
     
     async def get_human_like_delay(self) -> float:
         """Generate a human-like delay before responding"""
+        # If anti-ban is disabled, return minimal delay
+        if not self._is_anti_ban_enabled():
+            return 0.1  # Minimal delay for system processing
+        
         base_delay = random.uniform(self.min_reply_delay, self.max_reply_delay)
         
         # Add some variation based on time of day (slower at night)
@@ -84,6 +108,10 @@ class AntiBanService:
         Returns:
             Tuple[bool, Optional[str]]: (is_spam, detected_pattern)
         """
+        # If anti-ban is disabled, don't check for spam
+        if not self._is_anti_ban_enabled():
+            return False, None
+        
         message_lower = message.lower()
         
         for pattern in self.spam_patterns:
@@ -105,6 +133,10 @@ class AntiBanService:
         """
         Sanitize AI response to make it more human-like and less spammy
         """
+        # If anti-ban is disabled, return response as-is
+        if not self._is_anti_ban_enabled():
+            return response
+        
         # Remove or replace promotional language
         response = response.replace("Buy now", "Consider purchasing")
         response = response.replace("Click here", "You can check")
@@ -118,6 +150,10 @@ class AntiBanService:
     
     async def record_message_sent(self, user_phone: str):
         """Record that a message was sent for rate limiting purposes"""
+        # If anti-ban is disabled, don't record for rate limiting
+        if not self._is_anti_ban_enabled():
+            return
+        
         try:
             # Update global rate limiting
             self.redis_client.setex("last_message_sent", 3600, str(time.time()))
@@ -147,6 +183,7 @@ class AntiBanService:
         Returns:
             bool: True if user opted out
         """
+        # Always handle opt-out regardless of anti-ban settings
         opt_out_keywords = ['stop', 'unsubscribe', 'opt out', 'quit', 'leave me alone']
         message_lower = message.lower().strip()
         
