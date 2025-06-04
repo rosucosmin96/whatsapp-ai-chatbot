@@ -1,0 +1,11 @@
+# Chainlit for the UI
+chainlit>=1.0.0
+
+# HTTP client for API requests
+httpx>=0.25.0
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Additional utilities
+pathlib2>=2.3.0 

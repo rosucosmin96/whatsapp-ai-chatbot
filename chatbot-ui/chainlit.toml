@@ -1,0 +1,45 @@
+[project]
+# Whether to enable telemetry (default: true). No personal data is collected.
+enable_telemetry = false
+
+[UI]
+# Name of the app and chatbot.
+name = "WhatsApp OpenAI Bot UI"
+
+# Show the readme while the conversation is empty.
+show_readme_as_default = true
+
+# Description of the app and chatbot. This is used for HTML tags.
+description = "A Chainlit UI for the WhatsApp OpenAI Bot API"
+
+# Large language model to use for the chatbot. Can be either openai-gpt3.5-turbo or openai-gpt4.
+default_language_model = "openai-gpt3.5-turbo"
+
+# Path to the app icon.
+favicon = "/public/favicon.ico"
+
+# URL to your GitHub repo.
+github = "https://github.com/your-repo/whatsapp-openai-bot"
+
+[meta]
+generated_by = "1.0.0"
+
+[features]
+# Show the prompt playground
+prompt_playground = false
+
+# Process and display HTML in messages. This can be a security risk (see https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-javascript)
+unsafe_allow_html = false
+
+# Process and display mathematical expressions. This can clash with "$" characters in messages.
+latex = false
+
+# Authorize users to upload files with messages
+multi_modal = false
+
+# Allows user to use speech to text
+speech_to_text = false
+
+[authentication]
+# Require users to login to access the app.
+required = false 
