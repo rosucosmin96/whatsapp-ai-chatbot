@@ -264,6 +264,34 @@ class ChatbotAPIClient:
             error_msg = f"Unexpected error: {str(e)}"
             logger.error(f"Failed to update prompts for language '{language}': {error_msg}")
             raise Exception(f"Failed to update prompts: {error_msg}")
+        
+    async def erase_user_data(self, phone: str) -> Dict[str, Any]:
+        """
+        Erase all user data for a specific phone number
+        
+        Args:
+            phone: Phone number of the user to erase data for
+            
+        Returns:
+            Dict containing erase status and details
+        """
+        try:
+            url = f"{self.base_url}/config/erase/{phone}"
+            response = await self.client.delete(url)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
+            logger.error(f"Failed to erase user data for phone '{phone}': {error_msg}")
+            raise Exception(f"Failed to erase user data: {error_msg}")
+        except httpx.RequestError as e:
+            error_msg = f"Request error: {str(e)}"
+            logger.error(f"Failed to erase user data for phone '{phone}': {error_msg}")
+            raise Exception(f"Failed to connect to API: {error_msg}")
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            logger.error(f"Failed to erase user data for phone '{phone}': {error_msg}")
+            raise Exception(f"Failed to erase user data: {error_msg}")
     
     async def close(self):
         """Close the HTTP client connection"""

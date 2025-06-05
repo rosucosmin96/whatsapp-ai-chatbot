@@ -155,6 +155,128 @@ class DatabaseManager:
             ChatInteraction.user_id == user_id
         ).order_by(ChatInteraction.created_at).limit(limit).all()
     
+    def delete_user_interactions(self, phone: str) -> int:
+        """Delete all chat interactions for a user by phone number"""
+        db = self.get_session()
+        try:
+            # Get the user first
+            user = self.get_user_by_phone(db, phone)
+            if not user:
+                return 0
+            
+            # Delete all interactions for this user
+            deleted_count = db.query(ChatInteraction).filter(
+                ChatInteraction.user_id == user.id
+            ).delete()
+            
+            db.commit()
+            return deleted_count
+        except Exception as e:
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+    
+    def delete_user_usage_logs(self, phone: str) -> int:
+        """Delete all usage logs for a user by phone number"""
+        db = self.get_session()
+        try:
+            # Get the user first
+            user = self.get_user_by_phone(db, phone)
+            if not user:
+                return 0
+            
+            # Get all interaction IDs for this user
+            interaction_ids = db.query(ChatInteraction.id).filter(
+                ChatInteraction.user_id == user.id
+            ).all()
+            
+            if not interaction_ids:
+                return 0
+            
+            # Extract IDs from tuples
+            interaction_ids = [id_tuple[0] for id_tuple in interaction_ids]
+            
+            # Delete usage logs for these interactions
+            deleted_count = db.query(UsageLog).filter(
+                UsageLog.interaction_id.in_(interaction_ids)
+            ).delete(synchronize_session=False)
+            
+            db.commit()
+            return deleted_count
+        except Exception as e:
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+    
+    def erase_all_user_data(self, phone: str) -> Dict[str, Any]:
+        """Erase all data for a user by phone number"""
+        db = self.get_session()
+        try:
+            # Get the user first
+            user = self.get_user_by_phone(db, phone)
+            if not user:
+                return {
+                    "user_found": False,
+                    "interactions_deleted": 0,
+                    "usage_logs_deleted": 0,
+                    "user_deleted": False,
+                    "cache_cleared": False
+                }
+            
+            user_id = user.id
+            
+            # Get interaction IDs for usage log deletion
+            interaction_ids = db.query(ChatInteraction.id).filter(
+                ChatInteraction.user_id == user_id
+            ).all()
+            interaction_ids = [id_tuple[0] for id_tuple in interaction_ids]
+            
+            # Delete usage logs first (foreign key constraint)
+            usage_logs_deleted = 0
+            if interaction_ids:
+                usage_logs_deleted = db.query(UsageLog).filter(
+                    UsageLog.interaction_id.in_(interaction_ids)
+                ).delete(synchronize_session=False)
+            
+            # Delete chat interactions
+            interactions_deleted = db.query(ChatInteraction).filter(
+                ChatInteraction.user_id == user_id
+            ).delete()
+            
+            # Delete the user
+            db.delete(user)
+            
+            db.commit()
+            
+            # Clear Redis cache
+            cache_cleared = False
+            try:
+                redis_cache.clear_user_cache(user_id)
+                # Also clear any phone-based cache keys
+                if redis_client:
+                    cache_key = f"conversation:{phone}"
+                    redis_client.delete(cache_key)
+                cache_cleared = True
+            except Exception as e:
+                logger.warning(f"Error clearing cache for user {phone}: {str(e)}")
+            
+            logger.info(f"User data for {phone} erased successfully")
+            return {
+                "user_found": True,
+                "interactions_deleted": interactions_deleted,
+                "usage_logs_deleted": usage_logs_deleted,
+                "user_deleted": True,
+                "cache_cleared": cache_cleared
+            }
+            
+        except Exception as e:
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+    
     # Token usage tracking
     def log_token_usage(self, db: Session, 
                        interaction_id: int, 

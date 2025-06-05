@@ -3,8 +3,11 @@ from typing import Dict, Any, List
 from pydantic import BaseModel
 import os
 from pathlib import Path
+from sqlalchemy.orm import Session
 
 from ..config import config_manager
+from ..database import get_db, db_manager
+from ..database.redis_cache import redis_cache
 
 class ResponseConfigUpdate(BaseModel):
     max_tokens: int = None
@@ -183,7 +186,7 @@ def create_config_router() -> APIRouter:
                 )
             
             with open(system_prompt_file, 'r', encoding='utf-8') as f:
-                system_prompt = f.read().strip()
+                system_prompt = f.read()
             
             # Read summary prompt
             summary_prompt_file = prompts_dir / f"summary_{language}.txt"
@@ -191,7 +194,7 @@ def create_config_router() -> APIRouter:
             
             if summary_prompt_file.exists():
                 with open(summary_prompt_file, 'r', encoding='utf-8') as f:
-                    summary_prompt = f.read().strip()
+                    summary_prompt = f.read()
             
             return {
                 "language": language,
@@ -229,14 +232,14 @@ def create_config_router() -> APIRouter:
             if prompt_update.system_prompt is not None:
                 system_prompt_file = prompts_dir / f"{language}.txt"
                 with open(system_prompt_file, 'w', encoding='utf-8') as f:
-                    f.write(prompt_update.system_prompt.strip())
+                    f.write(prompt_update.system_prompt)
                 updated_files.append(f"system prompt ({language}.txt)")
             
             # Update summary prompt if provided
             if prompt_update.summary_prompt is not None:
                 summary_prompt_file = prompts_dir / f"summary_{language}.txt"
                 with open(summary_prompt_file, 'w', encoding='utf-8') as f:
-                    f.write(prompt_update.summary_prompt.strip())
+                    f.write(prompt_update.summary_prompt)
                 updated_files.append(f"summary prompt (summary_{language}.txt)")
             
             if not updated_files:
@@ -256,6 +259,37 @@ def create_config_router() -> APIRouter:
             raise HTTPException(
                 status_code=500,
                 detail=f"Error updating prompt files: {str(e)}"
+            )
+
+    @router.delete("/config/erase/{phone}")
+    async def erase_user_data(phone: str, db: Session = Depends(get_db)):
+        """Erase all conversations/data for a user by phone number"""
+        try:
+            # Use the new method to erase all user data
+            result = db_manager.erase_all_user_data(phone)
+            
+            if not result["user_found"]:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"User with phone number {phone} not found"
+                )
+            
+            return {
+                "status": f"User data for {phone} erased successfully",
+                "details": {
+                    "interactions_deleted": result["interactions_deleted"],
+                    "usage_logs_deleted": result["usage_logs_deleted"],
+                    "user_deleted": result["user_deleted"],
+                    "cache_cleared": result["cache_cleared"]
+                }
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error erasing user data: {str(e)}"
             )
 
     return router 
