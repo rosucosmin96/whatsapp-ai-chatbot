@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional
 import os
 from dotenv import load_dotenv
 import logging
+from dataclasses import dataclass
 
 # Load environment variables
 load_dotenv()
@@ -17,6 +18,25 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class PromptResponse:
+    """Response structure for prompt retrieval by language"""
+    language: str
+    system_prompt: str
+    summary_prompt: Optional[str]
+    has_summary_prompt: bool
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'PromptResponse':
+        """Create PromptResponse from dictionary"""
+        return cls(
+            language=data["language"],
+            system_prompt=data["system_prompt"],
+            summary_prompt=data.get("summary_prompt"),
+            has_summary_prompt=data["has_summary_prompt"]
+        )
 
 
 class ChatbotAPIClient:
@@ -166,6 +186,84 @@ class ChatbotAPIClient:
         except Exception as e:
             logger.warning(f"Failed to get API info: {str(e)}")
             return {"error": str(e)}
+    
+    async def get_prompts_by_language(self, language: str) -> PromptResponse:
+        """
+        Get system and summary prompts for a specific language
+        
+        Args:
+            language: Language code to get prompts for (e.g., "english", "romanian", "default")
+            
+        Returns:
+            PromptResponse containing system prompt, summary prompt, and language information
+        """
+        try:
+            url = f"{self.base_url}/config/prompts/{language}"
+            logger.info(f"Getting prompts for language: {language}")
+            response = await self.client.get(url)
+            response.raise_for_status()
+            
+            result = response.json()
+            logger.info(f"Retrieved prompts for language '{language}' - has_summary: {result.get('has_summary_prompt', False)}")
+            return PromptResponse.from_dict(result)
+            
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
+            logger.error(f"Failed to get prompts for language '{language}': {error_msg}")
+            raise Exception(f"Failed to get prompts for language '{language}': {error_msg}")
+        except httpx.RequestError as e:
+            error_msg = f"Request error: {str(e)}"
+            logger.error(f"Failed to get prompts for language '{language}': {error_msg}")
+            raise Exception(f"Failed to connect to API: {error_msg}")
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            logger.error(f"Failed to get prompts for language '{language}': {error_msg}")
+            raise Exception(f"Failed to get prompts: {error_msg}")
+    
+    async def update_prompts_by_language(self, language: str, system_prompt: Optional[str] = None, summary_prompt: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Update system and/or summary prompts for a specific language
+        
+        Args:
+            language: Language code to update prompts for (e.g., "english", "romanian", "default")
+            system_prompt: New system prompt text (optional)
+            summary_prompt: New summary prompt text (optional)
+            
+        Returns:
+            Dict containing update status and information
+        """
+        if system_prompt is None and summary_prompt is None:
+            raise ValueError("At least one of system_prompt or summary_prompt must be provided")
+        
+        try:
+            url = f"{self.base_url}/config/prompt/{language}"
+            payload = {}
+            
+            if system_prompt is not None:
+                payload["system_prompt"] = system_prompt
+            if summary_prompt is not None:
+                payload["summary_prompt"] = summary_prompt
+            
+            logger.info(f"Updating prompts for language '{language}' - system: {system_prompt is not None}, summary: {summary_prompt is not None}")
+            response = await self.client.put(url, json=payload)
+            response.raise_for_status()
+            
+            result = response.json()
+            logger.info(f"Successfully updated prompts for language '{language}' - files: {result.get('updated_files', [])}")
+            return result
+            
+        except httpx.HTTPStatusError as e:
+            error_msg = f"HTTP {e.response.status_code}: {e.response.text}"
+            logger.error(f"Failed to update prompts for language '{language}': {error_msg}")
+            raise Exception(f"Failed to update prompts for language '{language}': {error_msg}")
+        except httpx.RequestError as e:
+            error_msg = f"Request error: {str(e)}"
+            logger.error(f"Failed to update prompts for language '{language}': {error_msg}")
+            raise Exception(f"Failed to connect to API: {error_msg}")
+        except Exception as e:
+            error_msg = f"Unexpected error: {str(e)}"
+            logger.error(f"Failed to update prompts for language '{language}': {error_msg}")
+            raise Exception(f"Failed to update prompts: {error_msg}")
     
     async def close(self):
         """Close the HTTP client connection"""

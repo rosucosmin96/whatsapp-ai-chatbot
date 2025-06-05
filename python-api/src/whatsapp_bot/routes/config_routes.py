@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any, List
 from pydantic import BaseModel
+import os
+from pathlib import Path
 
 from ..config import config_manager
 
@@ -29,6 +31,10 @@ class BotConfigUpdate(BaseModel):
     enabled: bool = None
     maintenance_mode: bool = None
     maintenance_message: str = None
+
+class PromptUpdate(BaseModel):
+    system_prompt: str = None
+    summary_prompt: str = None
 
 def create_config_router() -> APIRouter:
     """Create and configure configuration management routes"""
@@ -151,4 +157,105 @@ def create_config_router() -> APIRouter:
             "message": config_manager.config.maintenance_message
         }
     
+    @router.get("/config/prompts/{language}")
+    async def get_prompts_by_language(language: str):
+        """Get system and summary prompts for a specific language"""
+        # Get the root directory of the project (python-api folder)
+        current_dir = Path(__file__).parent.parent.parent.parent
+        prompts_dir = current_dir / "prompts"
+        
+        # Define supported languages
+        supported_languages = ["english", "romanian", "default"]
+        
+        if language not in supported_languages:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Language '{language}' not supported. Available languages: {supported_languages}"
+            )
+        
+        try:
+            # Read system prompt
+            system_prompt_file = prompts_dir / f"{language}.txt"
+            if not system_prompt_file.exists():
+                raise HTTPException(
+                    status_code=404, 
+                    detail=f"System prompt file not found for language '{language}'"
+                )
+            
+            with open(system_prompt_file, 'r', encoding='utf-8') as f:
+                system_prompt = f.read().strip()
+            
+            # Read summary prompt
+            summary_prompt_file = prompts_dir / f"summary_{language}.txt"
+            summary_prompt = None
+            
+            if summary_prompt_file.exists():
+                with open(summary_prompt_file, 'r', encoding='utf-8') as f:
+                    summary_prompt = f.read().strip()
+            
+            return {
+                "language": language,
+                "system_prompt": system_prompt,
+                "summary_prompt": summary_prompt,
+                "has_summary_prompt": summary_prompt is not None
+            }
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error reading prompt files: {str(e)}"
+                        )
+    
+    @router.put("/config/prompt/{language}")
+    async def update_prompts_by_language(language: str, prompt_update: PromptUpdate):
+        """Update system and/or summary prompts for a specific language"""
+        # Get the root directory of the project (python-api folder)
+        current_dir = Path(__file__).parent.parent.parent.parent
+        prompts_dir = current_dir / "prompts"
+        
+        # Define supported languages
+        supported_languages = ["english", "romanian", "default"]
+        
+        if language not in supported_languages:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Language '{language}' not supported. Available languages: {supported_languages}"
+            )
+        
+        try:
+            updated_files = []
+            
+            # Update system prompt if provided
+            if prompt_update.system_prompt is not None:
+                system_prompt_file = prompts_dir / f"{language}.txt"
+                with open(system_prompt_file, 'w', encoding='utf-8') as f:
+                    f.write(prompt_update.system_prompt.strip())
+                updated_files.append(f"system prompt ({language}.txt)")
+            
+            # Update summary prompt if provided
+            if prompt_update.summary_prompt is not None:
+                summary_prompt_file = prompts_dir / f"summary_{language}.txt"
+                with open(summary_prompt_file, 'w', encoding='utf-8') as f:
+                    f.write(prompt_update.summary_prompt.strip())
+                updated_files.append(f"summary prompt (summary_{language}.txt)")
+            
+            if not updated_files:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No prompts provided. Please include system_prompt and/or summary_prompt in the request body."
+                )
+            
+            return {
+                "status": "Prompts updated successfully",
+                "language": language,
+                "updated_files": updated_files,
+                "message": f"Updated {len(updated_files)} prompt file(s) for {language}"
+            }
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error updating prompt files: {str(e)}"
+            )
+
     return router 

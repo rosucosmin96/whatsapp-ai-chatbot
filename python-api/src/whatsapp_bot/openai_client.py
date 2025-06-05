@@ -79,7 +79,9 @@ class OpenAIClient:
             messages = [
                 {
                     "role": "system", 
-                    "content": "You are a language detection assistant. Respond with only the language name in lowercase (e.g., 'english', 'romanian', 'spanish', 'french', etc.). If you cannot determine the language, respond with 'english'."
+                    "content": """You are a language detection assistant. Respond with only the language name in lowercase. 
+                    Supported languages: english, romanian, spanish, french, german, italian, portuguese, dutch, russian, chinese, japanese, korean, arabic, hebrew, hindi, turkish, polish, czech, hungarian, swedish, norwegian, danish, finnish.
+                    If you cannot determine the language or it's not in the supported list, respond with 'english'."""
                 },
                 {
                     "role": "user", 
@@ -90,19 +92,47 @@ class OpenAIClient:
             response = self.client.chat.completions.create(
                 model=get_model_for_task("translation"),
                 messages=messages,
-                max_tokens=10,
-                temperature=0.1
+                max_tokens=15,
+                temperature=0.0
             )
             
             detected_language = response.choices[0].message.content.strip().lower()
             logger.debug(f"Detected language: {detected_language}")
             
-            # Validate the detected language
-            valid_languages = ['english', 'romanian', ]
-            if detected_language not in valid_languages:
-                detected_language = 'english'
+            # Common language mappings to handle variations
+            language_mappings = {
+                'romanian': 'romanian',
+                'roma': 'romanian',
+                'ro': 'romanian',
+                'english': 'english', 
+                'en': 'english',
+                'spanish': 'spanish',
+                'es': 'spanish',
+                'french': 'french',
+                'fr': 'french',
+                'german': 'german',
+                'de': 'german',
+                'italian': 'italian',
+                'it': 'italian',
+                'portuguese': 'portuguese',
+                'pt': 'portuguese',
+                'dutch': 'dutch',
+                'nl': 'dutch',
+                'russian': 'russian',
+                'ru': 'russian',
+                'chinese': 'chinese',
+                'zh': 'chinese'
+            }
+            
+            # Normalize the detected language
+            normalized_language = language_mappings.get(detected_language, detected_language)
+            
+            # Final validation - if not a known language, default to english
+            common_languages = ['english', 'romanian', 'spanish', 'french', 'german', 'italian', 'portuguese', 'dutch', 'russian', 'chinese']
+            if normalized_language not in common_languages:
+                normalized_language = 'english'
                 
-            return detected_language
+            return normalized_language
             
         except Exception as e:
             logger.error(f"Error in language detection: {str(e)}")

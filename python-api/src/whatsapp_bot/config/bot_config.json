@@ -14,6 +14,10 @@
     "temperature": 0.8,
     "response_style": "conversational"
   },
+  "language": {
+    "detection_enabled": false,
+    "default_language": "english"
+  },
   "access": {
     "allowed_numbers": [
       "+1234567890",
@@ -26,10 +30,10 @@
     ]
   },
   "anti_ban": {
-    "enabled": true,
+    "enabled": false,
     "max_new_users_per_hour": 10,
     "min_reply_delay": 2.0,
-    "max_reply_delay": 10.0,
+    "max_reply_delay": 5.0,
     "global_rate_limit": 1.0,
     "daily_message_limits": {
       "1": 20,

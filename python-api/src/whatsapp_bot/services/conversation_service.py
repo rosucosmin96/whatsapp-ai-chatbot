@@ -10,6 +10,7 @@ from ..database import db_manager
 from ..database.redis_cache import redis_cache
 from whatsapp_bot.utils.logging_config import get_logger
 from whatsapp_bot.config import get_model_for_task
+from .language_service import LanguageDetectionService
 
 logger = get_logger(__name__)
 
@@ -18,6 +19,7 @@ class ConversationSummarizationService:
     
     def __init__(self, prompts_dir: str = None):
         self.client = OpenAIClient(prompts_dir)
+        self.language_service = LanguageDetectionService()
         
         # Set prompts directory
         if prompts_dir is None:
@@ -240,13 +242,13 @@ class ConversationSummarizationService:
         recent_text = " ".join([msg["content"] for msg in messages[-3:] if msg["role"] == "user"])
         
         if not recent_text:
-            return "english"
+            return self.language_service.get_default_language()
         
         try:
-            detected_language, _ = self.client.detect_language(recent_text)
+            detected_language = self.language_service.detect_language(recent_text)
             return detected_language
         except:
-            return "english"
+            return self.language_service.get_default_language()
     
     def get_conversation_stats(self, db: Session, user_id: int) -> Dict:
         """Get conversation statistics for monitoring"""

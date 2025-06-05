@@ -10,6 +10,7 @@ from ..database import get_db, db_manager, redis_cache
 from ..mapper import map_db_interaction_to_api_interaction
 from ..services.conversation_service import ConversationSummarizationService
 from ..services.anti_ban_service import AntiBanService
+from ..services.language_service import LanguageDetectionService
 from ..config import config_manager
 from ..utils.logging_config import get_logger
 
@@ -24,6 +25,7 @@ class ChatController:
         self.openai_client = OpenAIClient(prompts_dir)
         self.conversation_service = ConversationSummarizationService(prompts_dir)
         self.anti_ban_service = AntiBanService(self.config_manager)
+        self.language_service = LanguageDetectionService()
         logger.info("Chat controller initialized with configuration management")
     
     async def chat_endpoint(self, request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
@@ -94,8 +96,8 @@ class ChatController:
             if was_summarized:
                 logger.info(f"Used summarized conversation context for {user_phone}")
             
-            # Detect language
-            language = self.openai_client.detect_language(user_message)
+            # Detect language using the new language service
+            language = self.language_service.get_language_for_conversation(user_message, user.id)
             
             # 10. Get response configuration
             response_config = self.config_manager.get_response_config()
@@ -219,6 +221,22 @@ class ChatController:
                 else:
                     status = "enabled" if self.config_manager.config.anti_ban.enabled else "disabled"
                     return f"🛡️ Anti-ban measures are currently {status}"
+            
+            elif parts[1] == 'language':
+                if len(parts) > 2 and parts[2] == 'on':
+                    self.config_manager.update_language_config(detection_enabled=True)
+                    return "🌍 Language detection enabled"
+                elif len(parts) > 2 and parts[2] == 'off':
+                    self.config_manager.update_language_config(detection_enabled=False)
+                    return "🔒 Language detection disabled - using default language"
+                elif len(parts) > 3 and parts[2] == 'default':
+                    new_default = parts[3]
+                    self.config_manager.update_language_config(default_language=new_default)
+                    return f"🌍 Default language set to {new_default}"
+                else:
+                    lang_config = self.config_manager.get_language_config()
+                    status = "enabled" if lang_config.detection_enabled else "disabled"
+                    return f"🌍 Language detection: {status}, Default: {lang_config.default_language}"
         
         elif message_lower.startswith('/allow'):
             parts = message.split()
@@ -268,6 +286,8 @@ class ChatController:
 /config maintenance on/off - Toggle maintenance mode
 /config whitelist on/off - Toggle whitelist mode
 /config antiban on/off - Toggle anti-ban measures
+/config language on/off - Toggle language detection
+/config language default english - Set default language
 /config tokens 500 - Set max response tokens
 /config style brief - Set response style (conversational/brief/detailed)
 /config model chat gpt-4o-mini - Set model for specific task

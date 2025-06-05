@@ -62,10 +62,17 @@ class AntiBanConfig:
             }
 
 @dataclass
+class LanguageConfig:
+    """Configuration for language detection and handling"""
+    detection_enabled: bool = True
+    default_language: str = "english"
+
+@dataclass
 class BotConfig:
     """Main bot configuration"""
     models: ModelConfig = None
     response: ResponseConfig = None
+    language: LanguageConfig = None
     access: AccessConfig = None
     anti_ban: AntiBanConfig = None
     enabled: bool = True
@@ -77,6 +84,8 @@ class BotConfig:
             self.models = ModelConfig()
         if self.response is None:
             self.response = ResponseConfig()
+        if self.language is None:
+            self.language = LanguageConfig()
         if self.access is None:
             self.access = AccessConfig()
         if self.anti_ban is None:
@@ -107,10 +116,12 @@ class ConfigManager:
                 access_config = AccessConfig(**config_data.get('access', {}))
                 anti_ban_config = AntiBanConfig(**config_data.get('anti_ban', {}))
                 models_config = ModelConfig(**config_data.get('models', {}))
+                language_config = LanguageConfig(**config_data.get('language', {}))
                 
                 self.config = BotConfig(
                     models=models_config,
                     response=response_config,
+                    language=language_config,
                     access=access_config,
                     anti_ban=anti_ban_config,
                     enabled=config_data.get('enabled', True),
@@ -141,7 +152,8 @@ class ConfigManager:
                 'enabled': self.config.enabled,
                 'maintenance_mode': self.config.maintenance_mode,
                 'maintenance_message': self.config.maintenance_message,
-                'models': asdict(self.config.models)
+                'models': asdict(self.config.models),
+                'language': asdict(self.config.language)
             }
             
             with open(self.config_path, 'w', encoding='utf-8') as f:
@@ -204,6 +216,10 @@ class ConfigManager:
         """Get model configuration"""
         return self.config.models
     
+    def get_language_config(self) -> LanguageConfig:
+        """Get language configuration"""
+        return self.config.language
+    
     def update_response_config(self, **kwargs):
         """Update response configuration"""
         for key, value in kwargs.items():
@@ -223,6 +239,13 @@ class ConfigManager:
         for key, value in kwargs.items():
             if hasattr(self.config.models, key):
                 setattr(self.config.models, key, value)
+        self.save_config()
+    
+    def update_language_config(self, **kwargs):
+        """Update language configuration"""
+        for key, value in kwargs.items():
+            if hasattr(self.config.language, key):
+                setattr(self.config.language, key, value)
         self.save_config()
     
     def add_allowed_number(self, phone: str):
