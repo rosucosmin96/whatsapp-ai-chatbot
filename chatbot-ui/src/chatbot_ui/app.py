@@ -6,10 +6,10 @@ for the WhatsApp OpenAI Bot API.
 """
 
 import chainlit as cl
-import os
 from typing import Optional
 from dotenv import load_dotenv
 import logging
+from config import Config
 
 from chatbot_client import create_api_client, ChatbotAPIClient
 
@@ -20,11 +20,20 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
-DEFAULT_PHONE = os.getenv("DEFAULT_PHONE", "+0777777777")  # Default phone for demo
-CHAINLIT_HOST = os.getenv("CHAINLIT_HOST", "0.0.0.0")
-CHAINLIT_PORT = int(os.getenv("CHAINLIT_PORT", "8080"))
+# Configuration - now using centralized config
+API_BASE_URL = Config.API_BASE_URL
+DEFAULT_PHONE = Config.DEFAULT_PHONE  
+CHAINLIT_HOST = Config.CHAINLIT_HOST
+CHAINLIT_PORT = Config.CHAINLIT_PORT
+
+# Validate configuration on startup
+if not Config.validate():
+    logger.error("Configuration validation failed")
+    exit(1)
+
+# Optional: Print config for debugging
+if Config.LOG_LEVEL == "DEBUG":
+    Config.print_config()
 
 # Global API client
 api_client: Optional[ChatbotAPIClient] = None

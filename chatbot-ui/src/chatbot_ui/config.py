@@ -5,7 +5,6 @@ This module handles loading and managing configuration from environment variable
 """
 
 import os
-from typing import Optional
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
