@@ -60,31 +60,6 @@ async def start():
     """Initialize the chat session when a user starts chatting"""
     await initialize_api_client()
 
-    # Check if this is a new chat session (user clicked "New Chat")
-    # If there's existing session data, this indicates a new chat was started
-    existing_phone = cl.user_session.get("phone_number")
-    is_new_chat_session = existing_phone is not None
-    
-    # If this is a new chat session, erase user data
-    if is_new_chat_session:
-        try:
-            client = await ensure_api_client()
-            phone = existing_phone or DEFAULT_PHONE
-            await client.erase_user_data(phone)
-            logger.info(f"Erased user data for new chat session: {phone}")
-            
-            # Show confirmation message
-            await cl.Message(
-                content="🗑️ **New Chat Started** - Previous conversation data has been cleared!",
-                author="System"
-            ).send()
-        except Exception as e:
-            logger.error(f"Error erasing user data on new chat: {str(e)}")
-            await cl.Message(
-                content="⚠️ **New Chat Started** - Warning: Could not clear previous conversation data from backend.",
-                author="System"
-            ).send()
-
     # Get prompts from API
     client = await ensure_api_client()
     prompt_response = await client.get_prompts_by_language("english")
