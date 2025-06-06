@@ -47,13 +47,22 @@ async def initialize_api_client():
         logger.info("API client initialized")
 
 
+async def ensure_api_client():
+    """Ensure the API client is available, reinitialize if needed"""
+    global api_client
+    if api_client is None:
+        await initialize_api_client()
+    return api_client
+
+
 @cl.on_chat_start
 async def start():
     """Initialize the chat session when a user starts chatting"""
     await initialize_api_client()
 
     # Get prompts from API
-    prompt_response = await api_client.get_prompts_by_language("english")
+    client = await ensure_api_client()
+    prompt_response = await client.get_prompts_by_language("english")
     system_prompt_default = prompt_response.system_prompt
     summary_prompt_default   = prompt_response.summary_prompt
     
@@ -126,6 +135,7 @@ Let's start chatting! 💬"""
     cl.user_session.set("language", "english")
     cl.user_session.set("system_prompt", system_prompt_default)
     cl.user_session.set("summary_prompt", summary_prompt_default)
+    cl.user_session.set("receiver_phone", "test")
     
     # Show session info
     session_info = f"""📱 **Session Information**
@@ -147,7 +157,8 @@ async def setup_agent(settings):
     """Handle settings updates"""
     language = settings.get("language", "english")
     # Update session variables with new settings
-    prompt_response = await api_client.get_prompts_by_language(language)
+    client = await ensure_api_client()
+    prompt_response = await client.get_prompts_by_language(language)
     system_prompt_default = prompt_response.system_prompt
     summary_prompt_default   = prompt_response.summary_prompt
 
@@ -156,7 +167,7 @@ async def setup_agent(settings):
 
     # Update prompts in the backend API
     try:
-        await api_client.update_prompts_by_language(language, system_prompt, summary_prompt)
+        await client.update_prompts_by_language(language, system_prompt, summary_prompt)
         
         # Store in session
         cl.user_session.set("language", language)
@@ -164,7 +175,7 @@ async def setup_agent(settings):
         cl.user_session.set("summary_prompt", summary_prompt)
 
         # Erase user data
-        await api_client.erase_user_data(DEFAULT_PHONE)
+        await client.erase_user_data(DEFAULT_PHONE)
         
         # Show confirmation message
         settings_summary = f"""⚙️ **Settings Updated**
@@ -200,7 +211,8 @@ async def check_and_display_api_status():
     """Check API health and display status to user"""
     try:
         # Check general health
-        health_status = await api_client.get_health_status()
+        client = await ensure_api_client()
+        health_status = await client.get_health_status()
         
         if health_status.get("status") == "ok":
             status_msg = "✅ **API Status: Connected**"
@@ -237,30 +249,30 @@ async def main(message: cl.Message):
     """Handle incoming messages from users"""
     user_message = message.content
     phone = cl.user_session.get("phone_number", DEFAULT_PHONE)
-    
+    receiver_phone = cl.user_session.get("receiver_phone", "test")
     # Log the incoming message
     logger.info(f"Received message from UI user (phone: {phone}): {user_message[:100]}...")
     
     # Handle special commands
-    if user_message.lower().startswith('/'):
+    if user_message.lower().startswith('//'):
         await handle_special_commands(user_message, phone)
         return
     
     # Process regular chat message
-    await process_chat_message(user_message, phone)
+    await process_chat_message(user_message, phone, receiver_phone)
 
 
 async def handle_special_commands(command: str, phone: str):
     """Handle special UI commands"""
     command_lower = command.lower().strip()
     
-    if command_lower == '/status':
+    if command_lower == '//status':
         await check_and_display_api_status()
     
-    elif command_lower == '/history':
+    elif command_lower == '//history':
         await show_conversation_history(phone)
     
-    elif command_lower.startswith('/phone '):
+    elif command_lower.startswith('//phone '):
         new_phone = command[7:].strip()
         if new_phone:
             cl.user_session.set("phone_number", new_phone)
@@ -274,14 +286,14 @@ async def handle_special_commands(command: str, phone: str):
                 author="System"
             ).send()
     
-    elif command_lower == '/help':
+    elif command_lower == '//help':
         help_msg = """🔧 **Available Commands:**
 
-`/status` - Check API connection and health status
-`/history` - Show recent conversation history  
-`/phone +1234567890` - Change phone number for API requests
-`/info` - Show API information and endpoints
-`/help` - Show this help message
+`//status` - Check API connection and health status
+`//history` - Show recent conversation history  
+`//phone +1234567890` - Change phone number for API requests
+`//info` - Show API information and endpoints
+`//help` - Show this help message
 
 **⚙️ Settings Panel:**
 Click the settings icon (⚙️) in the top-right corner to customize:
@@ -306,12 +318,12 @@ Just type your message normally and it will be sent to the AI assistant!"""
             author="System"
         ).send()
     
-    elif command_lower == '/info':
+    elif command_lower == '//info':
         await show_api_info()
     
     else:
         await cl.Message(
-            content=f"❓ Unknown command: `{command}`\nType `/help` to see available commands.",
+            content=f"❓ Unknown command: `{command}`\nType `//help` to see available commands.",
             author="System"
         ).send()
 
@@ -319,7 +331,8 @@ Just type your message normally and it will be sent to the AI assistant!"""
 async def show_conversation_history(phone: str):
     """Show recent conversation history for the user"""
     try:
-        history_data = await api_client.get_user_history(phone, limit=5)
+        client = await ensure_api_client()
+        history_data = await client.get_user_history(phone, limit=5)
         
         if "error" in history_data:
             await cl.Message(
@@ -370,7 +383,8 @@ async def show_conversation_history(phone: str):
 async def show_api_info():
     """Show API information and available endpoints"""
     try:
-        api_info = await api_client.get_api_info()
+        client = await ensure_api_client()
+        api_info = await client.get_api_info()
         
         if "error" in api_info:
             await cl.Message(
@@ -410,16 +424,18 @@ async def show_api_info():
         ).send()
 
 
-
-async def process_chat_message(user_message: str, phone: str):
+async def process_chat_message(user_message: str, phone: str, receiver_phone: str = None):
     """Process a regular chat message through the API"""
     # Show processing indicator
     async with cl.Step(name="🤖 AI Assistant", type="run") as step:
         step.output = "Processing your message..."
         
         try:
+            # Ensure API client is available
+            client = await ensure_api_client()
+            
             # Send message to API
-            response_data = await api_client.send_message(phone, user_message)
+            response_data = await client.send_message(phone, user_message, receiver_phone)
             bot_response = response_data.get("response", "I didn't receive a proper response.")
             
             step.output = "✅ Response received successfully!"

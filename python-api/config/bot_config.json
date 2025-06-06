@@ -1,32 +1,20 @@
 {
-  "models": {
-    "default": "gpt-4o-mini",
-    "chat": "gpt-4o-mini",
-    "summarization": "gpt-4o-mini",
-    "translation": "gpt-4o-mini",
-    "analysis": "gpt-4o-mini",
-    "creative": "gpt-4o-mini",
-    "admin_commands": "gpt-4o-mini"
-  },
   "response": {
     "max_tokens": 1000,
     "min_tokens": 50,
     "temperature": 0.8,
     "response_style": "conversational"
   },
-  "language": {
-    "detection_enabled": false,
-    "default_language": "english"
-  },
   "access": {
     "allowed_numbers": [
-      "+1234567890",
-      "+0987654321"
+      "+77777777777"
     ],
     "blocked_numbers": [],
     "whitelist_mode": false,
     "admin_numbers": [
-      "+00000000000"
+      "+00000000000",
+      "+77777777777",
+      "+0729805002"
     ]
   },
   "anti_ban": {
@@ -44,5 +32,18 @@
   },
   "enabled": true,
   "maintenance_mode": false,
-  "maintenance_message": "Bot is currently under maintenance. Please try again later."
-} 
+  "maintenance_message": "Bot is currently under maintenance. Please try again later.",
+  "models": {
+    "default": "gpt-4o-mini",
+    "chat": "gpt-4o-mini",
+    "summarization": "gpt-4o-mini",
+    "translation": "gpt-4o-mini",
+    "analysis": "gpt-4o-mini",
+    "creative": "gpt-4o-mini",
+    "admin_commands": "gpt-4o-mini"
+  },
+  "language": {
+    "detection_enabled": false,
+    "default_language": "english"
+  }
+}

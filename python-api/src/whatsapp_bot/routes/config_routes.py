@@ -1,13 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import Dict, Any, List
+from typing import List
 from pydantic import BaseModel
-import os
 from pathlib import Path
 from sqlalchemy.orm import Session
 
 from ..config import config_manager
 from ..database import get_db, db_manager
-from ..database.redis_cache import redis_cache
 
 class ResponseConfigUpdate(BaseModel):
     max_tokens: int = None

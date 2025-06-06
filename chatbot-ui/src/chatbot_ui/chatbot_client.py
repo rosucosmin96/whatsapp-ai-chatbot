@@ -54,7 +54,7 @@ class ChatbotAPIClient:
         self.client = httpx.AsyncClient(timeout=timeout)
         logger.info(f"ChatbotAPIClient initialized with base_url: {self.base_url}")
     
-    async def send_message(self, phone: str, message: str) -> Dict[str, Any]:
+    async def send_message(self, phone: str, message: str, receiver_phone: str = None) -> Dict[str, Any]:
         """
         Send a message to the chatbot API
         
@@ -70,8 +70,9 @@ class ChatbotAPIClient:
         """
         url = f"{self.base_url}/chat"
         payload = {
-            "phone": phone,
-            "message": message
+            "sender_phone": phone,
+            "message": message,
+            "receiver_phone": receiver_phone
         }
         
         try:
