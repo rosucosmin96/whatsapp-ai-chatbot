@@ -24,6 +24,7 @@ class ChatInteraction(Base):
     __tablename__ = "chat_interactions"
 
     id = Column(Integer, primary_key=True)
+    receiver_phone = Column(String(20), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     request_message = Column(Text, nullable=False)
     response_message = Column(Text, nullable=False)

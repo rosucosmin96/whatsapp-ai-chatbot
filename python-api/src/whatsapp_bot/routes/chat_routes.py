@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from ..database.schema import ChatRequest, ChatResponse, ChatInteraction as ChatInteractionModel
 from ..database import get_db
@@ -16,9 +16,14 @@ def create_chat_router(chat_controller: ChatController) -> APIRouter:
         return await chat_controller.chat_endpoint(request, db)
     
     @router.get("/history/{phone}", response_model=List[ChatInteractionModel])
-    async def get_user_history(phone: str, limit: int = 10, db: Session = Depends(get_db)):
-        """Get conversation history for a user"""
-        return await chat_controller.get_user_history(phone, limit, db)
+    async def get_user_history(
+        phone: str, 
+        receiver_phone: Optional[str] = Query(None, description="Filter by receiver phone number"),
+        limit: int = Query(10, description="Maximum number of interactions to return"),
+        db: Session = Depends(get_db)
+    ):
+        """Get conversation history for a user, optionally filtered by receiver phone"""
+        return await chat_controller.get_user_history(phone, receiver_phone, limit, db)
     
     return router
 

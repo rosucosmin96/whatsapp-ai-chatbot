@@ -2,7 +2,8 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class ChatRequest(BaseModel):
-    phone: str
+    sender_phone: str
+    receiver_phone: str
     message: str
 
 class ChatResponse(BaseModel):

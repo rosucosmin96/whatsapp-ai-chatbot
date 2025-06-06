@@ -16,6 +16,8 @@ from ..utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+LIMITS_EXCEEDED = "limits exceeded"
+
 class ChatController:
     """Controller for handling chat-related operations"""
     
@@ -40,7 +42,8 @@ class ChatController:
             ChatResponse: Response from the AI assistant
         """
         try:
-            user_phone = request.phone
+            user_phone = request.sender_phone
+            receiver_phone = request.receiver_phone
             user_message = request.message
             
             logger.info(f"Received message from {user_phone}: {user_message}")
@@ -72,7 +75,7 @@ class ChatController:
             allow_message, reason = await self.anti_ban_service.should_allow_message(user_phone, db)
             if not allow_message:
                 logger.warning(f"Message blocked for {user_phone}: {reason}")
-                return ChatResponse(response="")
+                return ChatResponse(response=LIMITS_EXCEEDED)
             
             # 7. Check for spam in user message
             is_spam, spam_reason = await self.anti_ban_service.check_message_for_spam(user_message)
@@ -90,7 +93,7 @@ class ChatController:
             
             # Get optimized conversation context with summarization
             conversation_history, was_summarized = self.conversation_service.get_optimized_conversation_context(
-                db, user.id, user_message
+                db, user.id, user_message, receiver_phone
             )
             
             if was_summarized:
@@ -300,12 +303,13 @@ class ChatController:
         
         return None  # Not an admin command
     
-    async def get_user_history(self, phone: str, limit: int = 10, db: Session = Depends(get_db)) -> List[ChatInteractionModel]:
+    async def get_user_history(self, phone: str, receiver_phone: str = None, limit: int = 10, db: Session = Depends(get_db)) -> List[ChatInteractionModel]:
         """
-        Get conversation history for a user
+        Get conversation history for a user, optionally filtered by receiver_phone
         
         Args:
-            phone: User's phone number
+            phone: User's phone number (sender)
+            receiver_phone: Optional receiver phone number to filter by
             limit: Maximum number of interactions to return
             db: Database session
             
@@ -317,8 +321,8 @@ class ChatController:
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Get interactions from database
-        interactions = db_manager.get_user_interactions(db, user.id, limit)
+        # Get interactions from database, filtered by receiver_phone if provided
+        interactions = db_manager.get_user_interactions(db, user.id, receiver_phone, limit)
         
         # Convert DB models to Pydantic models
         result = []

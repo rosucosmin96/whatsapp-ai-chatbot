@@ -11,6 +11,7 @@ from ..database.redis_cache import redis_cache
 from whatsapp_bot.utils.logging_config import get_logger
 from whatsapp_bot.config import get_model_for_task
 from .language_service import LanguageDetectionService
+from platform import system_alias
 
 logger = get_logger(__name__)
 
@@ -160,16 +161,22 @@ class ConversationSummarizationService:
             return fallback_summary
     
     def get_optimized_conversation_context(self, db: Session, user_id: int, 
-                                         current_message: str) -> Tuple[List[Dict[str, str]], bool]:
+                                         current_message: str, receiver_phone: str = None) -> Tuple[List[Dict[str, str]], bool]:
         """
         Get optimized conversation context, with summarization if needed
+        
+        Args:
+            db: Database session
+            user_id: User ID
+            current_message: Current message from user
+            receiver_phone: Optional receiver phone to filter conversation
         
         Returns:
             Tuple[List[Dict[str, str]], bool]: (messages, was_summarized)
         """
         
-        # Get full conversation history
-        conversation_history = db_manager.get_user_conversation_history(db, user_id, limit=50)
+        # Get full conversation history, filtered by receiver_phone if provided
+        conversation_history = db_manager.get_user_conversation_history(db, user_id, receiver_phone, limit=50)
         
         if not conversation_history:
             return [], False
@@ -217,7 +224,7 @@ class ConversationSummarizationService:
         # Combine summary with recent messages
         optimized_context = [summary_message] + recent_messages
         
-        # Cache the optimized context
+        # Cache the optimized context 
         try:
             cache_key = f"summary:{user_id}:{datetime.now().strftime('%Y%m%d%H')}"
             self.redis_client.setex(

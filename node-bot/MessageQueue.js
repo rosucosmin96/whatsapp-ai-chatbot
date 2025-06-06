@@ -1,5 +1,6 @@
 const axios = require('axios');
 const config = require('./config');
+const limitsExceeded = 'limits exceeded';
 
 // Simple FIFO Message Queue
 class MessageQueue {
@@ -17,10 +18,11 @@ class MessageQueue {
     }
     
     // Add message to end of queue (FIFO)
-    enqueue(userPhone, messageContent, originalMessage) {
+    enqueue(userPhone, botPhone, messageContent, originalMessage) {
         const queuedMessage = {
             id: Date.now() + Math.random(),
             userPhone,
+            botPhone,
             messageContent,
             originalMessage,
             queuedAt: Date.now(),
@@ -86,14 +88,15 @@ class MessageQueue {
         try {
             // Try to process the message
             const response = await axios.post(config.apiUrl, {
-                phone: message.userPhone,
+                sender_phone: message.userPhone,
+                receiver_phone: message.botPhone,
                 message: message.messageContent
             }, {
                 timeout: 30000 // 30 second timeout
             });
             
             // Check if we got a valid response
-            if (response.data && response.data.response && response.data.response.trim() !== '') {
+            if (response.data && response.data.response && response.data.response.trim() !== limitsExceeded) {
                 // SUCCESS: Send response and remove from queue
                 await message.originalMessage.reply(response.data.response);
                 this.dequeue(); // Remove the successfully processed message
@@ -103,7 +106,7 @@ class MessageQueue {
                 
             } else {
                 // FAILED: Empty response, keep in queue
-                console.log(`⚠️ FAILED: Empty response for ${message.userPhone}, keeping in queue`);
+                console.log(`⚠️ FAILED: Limits exceeded for ${message.userPhone}, keeping in queue`);
             }
             
         } catch (error) {

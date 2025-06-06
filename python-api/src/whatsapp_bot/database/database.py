@@ -1,7 +1,6 @@
 import os
 import json
 import redis
-import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
@@ -83,12 +82,14 @@ class DatabaseManager:
     # ChatInteraction operations
     def save_chat_interaction(self, db: Session, 
                              user_id: int,
+                             receiver_phone: str,
                              request_message: str,
                              response_message: str,
                              language: str) -> ChatInteraction:
         """Save a chat interaction to the database"""
         interaction = ChatInteraction(
             user_id=user_id,
+            receiver_phone=receiver_phone,
             request_message=request_message,
             response_message=response_message,
             language=language
@@ -109,31 +110,37 @@ class DatabaseManager:
     def save_interaction(self, db: Session, 
                         interaction: ChatInteractionModel) -> ChatInteraction:
         """Save a chat interaction from request and response models"""
-        user = self.get_user_by_phone(db, interaction.chat_request.phone)
+        user = self.get_user_by_phone(db, interaction.chat_request.sender_phone)
         return self.save_chat_interaction(
             db=db,
             user_id=user.id,
+            receiver_phone=interaction.chat_request.receiver_phone,
             request_message=interaction.chat_request.message,
             response_message=interaction.chat_response.response,
             language=interaction.language
         )
     
-    def get_user_conversation_history(self, db: Session, user_id: int, limit: int = 10) -> List[Dict[str, str]]:
+    def get_user_conversation_history(self, db: Session, user_id: int, receiver_phone: str = None, limit: int = 10) -> List[Dict[str, str]]:
         """Get recent conversation history for a user in format suitable for OpenAI"""
-        # Try to get conversation from Redis cache first
-        try:
-            cached_conversation = redis_cache.get_conversation(user_id)
-            if cached_conversation:
-                logger.debug(f"Using cached conversation for user {user_id}")
-                return cached_conversation
-        except Exception as e:
-            logger.warning(f"Redis cache retrieval error: {str(e)}")
+        # Try to get conversation from Redis cache first (if no receiver_phone filter)
+        if not receiver_phone:
+            try:
+                cached_conversation = redis_cache.get_conversation(user_id)
+                if cached_conversation:
+                    logger.debug(f"Using cached conversation for user {user_id}")
+                    return cached_conversation
+            except Exception as e:
+                logger.warning(f"Redis cache retrieval error: {str(e)}")
         
         # If not in cache or error occurred, fall back to database
         logger.debug(f"Cache miss for user {user_id}, retrieving from database")
-        interactions = db.query(ChatInteraction).filter(
-            ChatInteraction.user_id == user_id
-        ).order_by(ChatInteraction.created_at).limit(limit).all()
+        query = db.query(ChatInteraction).filter(ChatInteraction.user_id == user_id)
+        
+        # Add receiver_phone filter if specified
+        if receiver_phone:
+            query = query.filter(ChatInteraction.receiver_phone == receiver_phone)
+        
+        interactions = query.order_by(ChatInteraction.created_at).limit(limit).all()
         
         # Convert to list of dictionaries for OpenAI and reverse for chronological order
         conversation = []
@@ -141,7 +148,7 @@ class DatabaseManager:
             conversation.append({"role": "user", "content": interaction.request_message})
             conversation.append({"role": "assistant", "content": interaction.response_message})
         
-        # Cache the conversation for future use
+        # Cache the conversation for future use 
         try:
             redis_cache.cache_conversation(user_id, conversation)
         except Exception as e:
@@ -149,11 +156,15 @@ class DatabaseManager:
         
         return conversation
     
-    def get_user_interactions(self, db: Session, user_id: int, limit: int = 10) -> List[ChatInteraction]:
-        """Get all interactions for a user"""
-        return db.query(ChatInteraction).filter(
-            ChatInteraction.user_id == user_id
-        ).order_by(ChatInteraction.created_at).limit(limit).all()
+    def get_user_interactions(self, db: Session, user_id: int, receiver_phone: str = None, limit: int = 10) -> List[ChatInteraction]:
+        """Get all interactions for a user, optionally filtered by receiver_phone"""
+        query = db.query(ChatInteraction).filter(ChatInteraction.user_id == user_id)
+        
+        # Add receiver_phone filter if specified
+        if receiver_phone:
+            query = query.filter(ChatInteraction.receiver_phone == receiver_phone)
+        
+        return query.order_by(ChatInteraction.created_at).limit(limit).all()
     
     def delete_user_interactions(self, phone: str) -> int:
         """Delete all chat interactions for a user by phone number"""

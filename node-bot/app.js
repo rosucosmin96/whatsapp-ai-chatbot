@@ -1,7 +1,5 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const axios = require('axios');
-const config = require('./config');
 const MessageQueue = require('./MessageQueue');
 
 // Track when the bot started to avoid processing old messages
@@ -82,6 +80,7 @@ client.on('message', async (message) => {
         const messageTimestamp = message.timestamp * 1000; // Convert to milliseconds
         const messageDate = new Date(messageTimestamp);
         const readyDate = new Date(botReadyTime);
+        const botPhone = getBotInfo().phoneNumber;
         
         // Only process messages sent AFTER the bot became ready + delay
         const processingEnabledTime = botReadyTime + 10000; // Add the 10 second delay
@@ -109,7 +108,7 @@ client.on('message', async (message) => {
         console.log(`✅ VALID: NEW message from ${userPhone}: ${messageContent}`);
         
         // Add to queue - NO IMMEDIATE RESPONSE
-        messageQueue.enqueue(userPhone, messageContent, message);
+        messageQueue.enqueue(userPhone, botPhone, messageContent, message);
         
         // Note: No reply sent here - user will get response only when processing succeeds
         
@@ -134,7 +133,7 @@ client.on('message', async (message) => {
 client.on('message', async (message) => {
     // Define admin phone numbers (replace with your actual admin numbers)
     const adminNumbers = [
-        '+1234567890'  // Replace with your admin number
+        '+00000000000'  // Replace with your admin number
     ];
     
     // Check if message is from admin
@@ -225,4 +224,18 @@ process.on('SIGTERM', () => {
 });
 
 // Initialize the client
-client.initialize(); 
+client.initialize();
+
+// Add this function after your client initialization
+function getBotInfo() {
+    if (client.info) {
+        const botInfo = client.info;
+        return {
+            phoneNumber: `+${botInfo.wid.user}`,
+            pushname: botInfo.pushname,
+            wid: botInfo.wid._serialized,
+            platform: botInfo.platform
+        };
+    }
+    return null;
+} 
