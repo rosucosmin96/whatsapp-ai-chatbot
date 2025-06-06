@@ -13,7 +13,7 @@ show_readme_as_default = true
 description = "A Chainlit UI for the WhatsApp OpenAI Bot API"
 
 # Large language model to use for the chatbot. Can be either openai-gpt3.5-turbo or openai-gpt4.
-default_language_model = "openai-gpt3.5-turbo"
+default_language_model = "openai-gpt4o-mini"
 
 # Path to the app icon.
 favicon = "/public/favicon.ico"

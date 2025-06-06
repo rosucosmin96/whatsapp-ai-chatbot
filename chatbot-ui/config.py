@@ -19,7 +19,7 @@ class Config:
     API_BASE_URL: str = os.getenv("API_BASE_URL", "http://localhost:8000")
     
     # User Configuration  
-    DEFAULT_PHONE: str = os.getenv("DEFAULT_PHONE", "+1234567890")
+    DEFAULT_PHONE: str = os.getenv("DEFAULT_PHONE", "+77777777777")
     
     # Chainlit Server Configuration
     CHAINLIT_HOST: str = os.getenv("CHAINLIT_HOST", "0.0.0.0")

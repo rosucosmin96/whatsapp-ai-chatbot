@@ -5,7 +5,6 @@ This module handles communication with the Python API backend.
 """
 
 import httpx
-import asyncio
 from typing import Dict, Any, Optional
 import os
 from dotenv import load_dotenv

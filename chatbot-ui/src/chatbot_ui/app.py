@@ -6,9 +6,7 @@ for the WhatsApp OpenAI Bot API.
 """
 
 import chainlit as cl
-import asyncio
 import os
-from datetime import datetime
 from typing import Optional
 from dotenv import load_dotenv
 import logging
@@ -92,6 +90,15 @@ Click the settings icon (⚙️) in the top-right corner to customize:
 - Language settings
 - System prompt to define AI behavior
 - Summary prompt for conversation summaries
+
+**Important:**
+- The system prompt is used to define the AI's behavior and personality.
+- The summary prompt is used to generate conversation summaries.
+- The language settings are used to determine the language of the AI's responses.
+- The phone number is used to identify the user and send messages to.
+- The API base URL is used to connect to the Python API backend.
+- After changing the settings, you need to click the "Save Settings" button to apply the changes.
+- After applying the changes, the user data will be erased and the new settings will be applied.
 
 Let's start chatting! 💬"""
     
@@ -271,7 +278,16 @@ async def handle_special_commands(command: str, phone: str):
 Click the settings icon (⚙️) in the top-right corner to customize:
 - 🌐 Language settings
 - 🤖 System prompt to define AI behavior
-- � Summary prompt for conversation summaries
+- 📝 Summary prompt for conversation summaries
+
+**Important:**
+- The system prompt is used to define the AI's behavior and personality.
+- The summary prompt is used to generate conversation summaries.
+- The language settings are used to determine the language of the AI's responses.
+- The phone number is used to identify the user and send messages to.
+- The API base URL is used to connect to the Python API backend.
+- After changing the settings, you need to click the "Save Settings" button to apply the changes.
+- After applying the changes, the user data will be erased and the new settings will be applied.
 
 **Regular Usage:**
 Just type your message normally and it will be sent to the AI assistant!"""
