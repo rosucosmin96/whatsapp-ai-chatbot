@@ -1,8 +1,8 @@
 import os
 import json
 import tiktoken
-from typing import List, Dict, Optional, Tuple
-from datetime import datetime, timedelta
+from typing import List, Dict, Tuple
+from datetime import datetime
 from sqlalchemy.orm import Session
 
 from ..openai_client import OpenAIClient
@@ -11,7 +11,6 @@ from ..database.redis_cache import redis_cache
 from whatsapp_bot.utils.logging_config import get_logger
 from whatsapp_bot.config import get_model_for_task
 from .language_service import LanguageDetectionService
-from platform import system_alias
 
 logger = get_logger(__name__)
 
@@ -31,7 +30,7 @@ class ConversationSummarizationService:
         self.max_context_tokens = int(os.getenv('MAX_CONTEXT_TOKENS', '3000'))
         self.summary_trigger_tokens = int(os.getenv('SUMMARY_TRIGGER_TOKENS', '2500'))
         self.summary_target_tokens = int(os.getenv('SUMMARY_TARGET_TOKENS', '800'))
-        self.keep_recent_messages = int(os.getenv('KEEP_RECENT_MESSAGES', '4'))
+        self.keep_recent_messages = int(os.getenv('KEEP_RECENT_MESSAGES', '10'))
         
         # Initialize tokenizer for the current model
         model = get_model_for_task("summarization")
@@ -190,9 +189,9 @@ class ConversationSummarizationService:
         
         logger.debug(f"Total conversation tokens: {total_tokens}")
         
-        # If under the trigger threshold, return as is
-        if total_tokens <= self.summary_trigger_tokens:
-            return conversation_history, False
+        # # If under the trigger threshold, return as is
+        # if total_tokens <= self.summary_trigger_tokens:
+        #     return conversation_history, False
         
         logger.info(f"Token limit exceeded ({total_tokens} > {self.summary_trigger_tokens}), creating summary...")
         

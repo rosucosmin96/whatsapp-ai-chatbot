@@ -122,15 +122,14 @@ class DatabaseManager:
     
     def get_user_conversation_history(self, db: Session, user_id: int, receiver_phone: str = None, limit: int = 10) -> List[Dict[str, str]]:
         """Get recent conversation history for a user in format suitable for OpenAI"""
-        # Try to get conversation from Redis cache first (if no receiver_phone filter)
-        if not receiver_phone:
-            try:
-                cached_conversation = redis_cache.get_conversation(user_id)
-                if cached_conversation:
-                    logger.debug(f"Using cached conversation for user {user_id}")
-                    return cached_conversation
-            except Exception as e:
-                logger.warning(f"Redis cache retrieval error: {str(e)}")
+        # Try to get conversation from Redis cache first
+        try:
+            cached_conversation = redis_cache.get_conversation(user_id)
+            if cached_conversation:
+                logger.debug(f"Using cached conversation for user {user_id}")
+                return cached_conversation
+        except Exception as e:
+            logger.warning(f"Redis cache retrieval error: {str(e)}")
         
         # If not in cache or error occurred, fall back to database
         logger.debug(f"Cache miss for user {user_id}, retrieving from database")
