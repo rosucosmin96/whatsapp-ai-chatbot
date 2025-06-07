@@ -175,7 +175,7 @@ class OpenAIClient:
     
     def generate_response(self, user_message: str, language: str = 'english', 
                          conversation_history: List[Dict[str, str]] = None, temperature: float = 0.7,
-                         max_tokens: int = 1000, response_style: str = "conversational") -> str:
+                         max_tokens: int = 2000, response_style: str = "conversational") -> str:
         """
         Generate a response using OpenAI with conversation history and configurable parameters
         
