@@ -3,9 +3,23 @@ import os
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from .utils.logging_config import get_logger
+from whatsapp_bot.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+def get_project_root() -> Path:
+    """Get the absolute path to the project root (python-api directory)"""
+    current_file = Path(__file__).resolve()
+    # Navigate up from src/whatsapp_bot/config.py to python-api/
+    return current_file.parent.parent.parent
+
+def get_config_path() -> Path:
+    """Get absolute path to the bot configuration file"""
+    return get_project_root() / "config/bot_config.json"
+
+def get_prompts_dir() -> Path:
+    """Get absolute path to the prompts directory"""
+    return get_project_root() / "prompts"
 
 @dataclass
 class ModelConfig:
@@ -94,11 +108,20 @@ class BotConfig:
 class ConfigManager:
     """Manager for bot configuration"""
     
-    def __init__(self, config_path: str = "config/bot_config.json"):
-        self.config_path = Path(config_path)
+    def __init__(self, config_path: Optional[str] = None):
+        # Always use absolute path to the main config file
+        if config_path is None:
+            self.config_path = get_config_path()
+        else:
+            self.config_path = Path(config_path)
+        
         self.config: BotConfig = BotConfig()
         self._ensure_config_dir()
         self.load_config()
+        
+        # Log the absolute paths being used
+        logger.info(f"Using config file: {self.config_path.absolute()}")
+        logger.info(f"Using prompts directory: {get_prompts_dir().absolute()}")
     
     def _ensure_config_dir(self):
         """Ensure config directory exists"""

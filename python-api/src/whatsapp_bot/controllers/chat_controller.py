@@ -4,15 +4,15 @@ from datetime import datetime
 import asyncio
 from typing import List
 
-from ..openai_client import OpenAIClient
-from ..database.schema import ChatRequest, ChatResponse, ChatInteraction as ChatInteractionModel
-from ..database import get_db, db_manager, redis_cache
-from ..mapper import map_db_interaction_to_api_interaction
-from ..services.conversation_service import ConversationSummarizationService
-from ..services.anti_ban_service import AntiBanService
-from ..services.language_service import LanguageDetectionService
-from ..config import config_manager
-from ..utils.logging_config import get_logger
+from whatsapp_bot.openai_client import OpenAIClient
+from whatsapp_bot.database.schema import ChatRequest, ChatResponse, ChatInteraction as ChatInteractionModel
+from whatsapp_bot.database import get_db, db_manager, redis_cache
+from whatsapp_bot.mapper import map_db_interaction_to_api_interaction
+from whatsapp_bot.services.conversation_service import ConversationSummarizationService
+from whatsapp_bot.services.anti_ban_service import AntiBanService
+from whatsapp_bot.services.language_service import LanguageDetectionService
+from whatsapp_bot.config import config_manager
+from whatsapp_bot.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

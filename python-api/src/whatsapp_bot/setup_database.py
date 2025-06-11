@@ -23,7 +23,7 @@ def main():
     args = parser.parse_args()
     
     # Pass all arguments to the setup_db module
-    from database.setup_db import main as setup_main
+    from whatsapp_bot.database.setup_db import main as setup_main
     
     # Override sys.argv to pass our parsed arguments to the setup_db main function
     sys.argv = [sys.argv[0]]

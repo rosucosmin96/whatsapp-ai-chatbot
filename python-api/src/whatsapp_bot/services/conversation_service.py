@@ -5,12 +5,12 @@ from typing import List, Dict, Tuple
 from datetime import datetime
 from sqlalchemy.orm import Session
 
-from ..openai_client import OpenAIClient
-from ..database import db_manager
-from ..database.redis_cache import redis_cache
+from whatsapp_bot.openai_client import OpenAIClient
+from whatsapp_bot.database import db_manager
+from whatsapp_bot.database.redis_cache import redis_cache
 from whatsapp_bot.utils.logging_config import get_logger
-from whatsapp_bot.config import get_model_for_task
-from .language_service import LanguageDetectionService
+from whatsapp_bot.config import get_model_for_task, get_prompts_dir
+from whatsapp_bot.services.language_service import LanguageDetectionService
 
 logger = get_logger(__name__)
 
@@ -23,7 +23,7 @@ class ConversationSummarizationService:
         
         # Set prompts directory
         if prompts_dir is None:
-            prompts_dir = os.getenv("PROMPTS_DIR", "prompts")
+            prompts_dir = get_prompts_dir()
         self.prompts_dir = prompts_dir
         
         # Configuration from environment variables
@@ -193,7 +193,7 @@ class ConversationSummarizationService:
         # if total_tokens <= self.summary_trigger_tokens:
         #     return conversation_history, False
         
-        logger.info(f"Token limit exceeded ({total_tokens} > {self.summary_trigger_tokens}), creating summary...")
+        # logger.info(f"Token limit exceeded ({total_tokens} > {self.summary_trigger_tokens}), creating summary...")
         
         # Determine how many recent messages to keep
         recent_messages = conversation_history[-self.keep_recent_messages:]

@@ -7,9 +7,9 @@ from dotenv import load_dotenv
 from typing import List, Optional, Dict, Any
 from whatsapp_bot.utils.logging_config import get_logger
 
-from .models import Base, User, ChatInteraction, UsageLog
-from .schema import ChatInteraction as ChatInteractionModel
-from .redis_cache import redis_cache
+from whatsapp_bot.database.models import Base, User, ChatInteraction, UsageLog
+from whatsapp_bot.database.schema import ChatInteraction as ChatInteractionModel
+from whatsapp_bot.database.redis_cache import redis_cache
 
 logger = get_logger(__name__)
 

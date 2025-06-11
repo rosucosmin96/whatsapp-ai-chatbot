@@ -17,6 +17,7 @@ from whatsapp_bot.routes.config_routes import create_config_router
 from whatsapp_bot.routes.conversation_routes import create_conversation_router
 from whatsapp_bot.services.backup_service import DatabaseBackupService
 from whatsapp_bot.utils.logging_config import setup_logging, get_logger
+from whatsapp_bot.config import get_prompts_dir, get_config_path
 
 # Load environment variables
 load_dotenv()
@@ -33,8 +34,8 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Define prompts directory
-PROMPTS_DIR = os.getenv("PROMPTS_DIR", "prompts")
+# Get absolute path to prompts directory
+PROMPTS_DIR = get_prompts_dir()
 
 # Ensure the necessary prompt files exist
 default_prompts = {
@@ -51,20 +52,19 @@ default_prompts = {
 }
 
 # Create prompts directory if it doesn't exist
-if not os.path.exists(PROMPTS_DIR):
-    os.makedirs(PROMPTS_DIR)
-    logger.info(f"Created prompts directory: {PROMPTS_DIR}")
+PROMPTS_DIR.mkdir(parents=True, exist_ok=True)
+logger.info(f"Using prompts directory: {PROMPTS_DIR.absolute()}")
 
 # Create default prompt files if they don't exist
 for filename, content in default_prompts.items():
-    file_path = os.path.join(PROMPTS_DIR, filename)
-    if not os.path.exists(file_path):
-        with open(file_path, "w") as f:
+    file_path = PROMPTS_DIR / filename
+    if not file_path.exists():
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
         logger.info(f"Created default prompt file: {file_path}")
 
-# Initialize controller
-chat_controller = ChatController(PROMPTS_DIR)
+# Initialize controller with absolute prompts directory
+chat_controller = ChatController(str(PROMPTS_DIR))
 
 # Initialize database
 try:
@@ -99,6 +99,10 @@ async def root():
     return {
         "message": "WhatsApp OpenAI Bot API with Configuration Management",
         "version": "1.1.0",
+        "config": {
+            "config_file": str(get_config_path()),
+            "prompts_directory": str(PROMPTS_DIR.absolute())
+        },
         "endpoints": {
             "chat": "/chat",
             "history": "/history/{phone}",

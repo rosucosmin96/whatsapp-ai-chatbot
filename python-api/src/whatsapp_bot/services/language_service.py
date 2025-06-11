@@ -1,7 +1,7 @@
 from typing import Optional
-from ..openai_client import OpenAIClient
-from ..config import config_manager
-from ..utils.logging_config import get_logger
+from whatsapp_bot.openai_client import OpenAIClient
+from whatsapp_bot.config import config_manager
+from whatsapp_bot.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

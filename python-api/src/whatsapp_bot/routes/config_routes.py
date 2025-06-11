@@ -1,11 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from pydantic import BaseModel
-from pathlib import Path
 from sqlalchemy.orm import Session
 
-from ..config import config_manager
-from ..database import get_db, db_manager
+from whatsapp_bot.config import config_manager, get_prompts_dir
+from whatsapp_bot.database import db_manager, get_db
 
 class ResponseConfigUpdate(BaseModel):
     max_tokens: int = None
@@ -161,9 +160,7 @@ def create_config_router() -> APIRouter:
     @router.get("/config/prompts/{language}")
     async def get_prompts_by_language(language: str):
         """Get system and summary prompts for a specific language"""
-        # Get the root directory of the project (python-api folder)
-        current_dir = Path(__file__).parent.parent.parent.parent
-        prompts_dir = current_dir / "prompts"
+        prompts_dir = get_prompts_dir()
         
         # Define supported languages
         supported_languages = ["english", "romanian", "default"]
@@ -210,9 +207,7 @@ def create_config_router() -> APIRouter:
     @router.put("/config/prompt/{language}")
     async def update_prompts_by_language(language: str, prompt_update: PromptUpdate):
         """Update system and/or summary prompts for a specific language"""
-        # Get the root directory of the project (python-api folder)
-        current_dir = Path(__file__).parent.parent.parent.parent
-        prompts_dir = current_dir / "prompts"
+        prompts_dir = get_prompts_dir()
         
         # Define supported languages
         supported_languages = ["english", "romanian", "default"]

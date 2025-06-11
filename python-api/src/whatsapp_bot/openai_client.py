@@ -3,7 +3,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from typing import Dict, Tuple, Optional, List, Any
 from whatsapp_bot.utils.logging_config import get_logger
-from whatsapp_bot.config import get_model_for_task, config_manager
+from whatsapp_bot.config import get_model_for_task, get_prompts_dir
 
 # Load environment variables
 load_dotenv()
@@ -11,15 +11,22 @@ load_dotenv()
 logger = get_logger(__name__)
 
 class OpenAIClient:
-    def __init__(self, prompts_dir: str = "prompts"):
+    def __init__(self, prompts_dir: Optional[str] = None):
         """
         Initialize OpenAI client with API key from environment
         
         Args:
-            prompts_dir: Directory containing prompt files
+            prompts_dir: Directory containing prompt files (will use absolute path if None)
         """
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.prompts_dir = prompts_dir
+        
+        # Always use absolute path to prompts directory
+        if prompts_dir is None:
+            self.prompts_dir = get_prompts_dir()
+        else:
+            self.prompts_dir = prompts_dir
+        
+        logger.info(f"OpenAI client initialized with prompts directory: {self.prompts_dir}")
     
     def chat_completion(self, messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo", 
                        temperature: float = 0.7, max_tokens: int = 1000) -> Tuple[str, Optional[Dict[str, Any]]]:
@@ -36,29 +43,26 @@ class OpenAIClient:
             Tuple of (response_message, usage_info)
         """
         try:
-            logger.debug(f"Sending {len(messages)} messages to OpenAI API")
-            logger.debug(f"Model: {model}, Temperature: {temperature}, Max tokens: {max_tokens}")
-            
+            # Create the chat completion request
             response = self.client.chat.completions.create(
                 model=model,
                 messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                max_tokens=max_tokens
             )
             
+            # Extract the response message
             response_message = response.choices[0].message.content
             
             # Extract usage information
-            usage_info = None
-            if hasattr(response, 'usage') and response.usage:
-                usage_info = {
-                    'prompt_tokens': response.usage.prompt_tokens,
-                    'completion_tokens': response.usage.completion_tokens,
-                    'total_tokens': response.usage.total_tokens
-                }
-                logger.debug(f"Token usage: {usage_info}")
+            usage_info = {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens
+            }
             
-            logger.info(f"Successfully received response from OpenAI API")
+            logger.info(f"Chat completion successful - Model: {model}, Total tokens: {usage_info['total_tokens']}")
+            
             return response_message, usage_info
             
         except Exception as e:

@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from ..database.schema import ChatRequest, ChatResponse, ChatInteraction as ChatInteractionModel
-from ..database import get_db
-from ..controllers.chat_controller import ChatController
+from whatsapp_bot.database.schema import ChatRequest, ChatResponse, ChatInteraction as ChatInteractionModel
+from whatsapp_bot.database import get_db
+from whatsapp_bot.controllers.chat_controller import ChatController
 
 def create_chat_router(chat_controller: ChatController) -> APIRouter:
     """Create and configure chat routes"""
